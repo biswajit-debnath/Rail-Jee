@@ -5,10 +5,15 @@ import examData from '@/data/exams.json';
 
 interface Question {
   id: number;
-  question: string;
-  options: string[];
+  question: {
+    en: string;
+    hi: string;
+  };
+  options: {
+    en: string[];
+    hi: string[];
+  };
   correctAnswer: number;
-  explanation: string;
 }
 
 interface ExamModalProps {
@@ -16,15 +21,18 @@ interface ExamModalProps {
   onClose: () => void;
 }
 
+type Language = 'en' | 'hi';
+
 export default function ExamModal({ examId, onClose }: ExamModalProps) {
   const [isStarted, setIsStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [language] = useState<Language>('en');
 
   const exam = examData.exams.find(e => e.id === examId);
-  const questions = examData.questions[examId as keyof typeof examData.questions] as Question[];
+  const questions = (examData.questions as Record<string, Question[]>)[examId] || [];
 
   useEffect(() => {
     if (exam && isStarted && !showResults) {
@@ -173,12 +181,12 @@ export default function ExamModal({ examId, onClose }: ExamModalProps) {
                       {index + 1}
                     </span>
                     <p className="text-gray-900 dark:text-white font-medium flex-1">
-                      {question.question}
+                      {question.question[language]}
                     </p>
                   </div>
 
                   <div className="space-y-2 ml-11">
-                    {question.options.map((option, optIndex) => (
+                    {question.options[language].map((option, optIndex) => (
                       <div
                         key={optIndex}
                         className={`p-3 rounded-lg ${
@@ -205,14 +213,6 @@ export default function ExamModal({ examId, onClose }: ExamModalProps) {
                       </div>
                     ))}
                   </div>
-
-                  {question.explanation && (
-                    <div className="mt-4 ml-11 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        <span className="font-semibold">Explanation:</span> {question.explanation}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -261,12 +261,12 @@ export default function ExamModal({ examId, onClose }: ExamModalProps) {
             <div className="mb-8">
               <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-6 mb-6">
                 <p className="text-lg text-gray-900 dark:text-white font-medium">
-                  {questions[currentQuestion].question}
+                  {questions[currentQuestion].question[language]}
                 </p>
               </div>
 
               <div className="space-y-3">
-                {questions[currentQuestion].options.map((option, index) => (
+                {questions[currentQuestion].options[language].map((option, index) => (
                   <button
                     key={index}
                     onClick={() => handleAnswer(index)}
