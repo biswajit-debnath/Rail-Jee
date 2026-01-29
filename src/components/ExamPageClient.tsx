@@ -19,6 +19,10 @@ interface Question {
     en: string[];
     hi: string[];
   };
+  extras?: Array<{
+    en: string;
+    hi: string;
+  }>;
   correctAnswer: number;
 }
 
@@ -139,6 +143,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     fetchExamDetails();
   }, [examId]);
 
+  // Timer effect
   useEffect(() => {
     if (!hasStarted || showResult || timeRemaining <= 0) return;
 
@@ -154,6 +159,35 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
     return () => clearInterval(timer);
   }, [hasStarted, showResult, timeRemaining]);
+
+  // Prevent accidental navigation during exam
+  useEffect(() => {
+    if (!hasStarted || showResult) return;
+
+    // Handle browser back button
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+      setShowSubmitConfirm(true);
+    };
+
+    // Handle page refresh/close
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    // Push a state to handle back button
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasStarted, showResult]);
 
   const handleStartExam = async () => {
     try {
@@ -200,25 +234,13 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     setMarkedForReview(newMarked);
   };
 
-  const handleSkipQuestion = () => {
-    // Save current answer if any
-    if (selectedAnswer !== null) {
-      const newAnswers = [...answers];
-      newAnswers[currentQuestionIndex] = selectedAnswer;
-      setAnswers(newAnswers);
-    }
-    
-    // Move to next question without requiring an answer
-    if (currentQuestionIndex < questions.length - 1) {
-      const nextIndex = currentQuestionIndex + 1;
-      setCurrentQuestionIndex(nextIndex);
-      setSelectedAnswer(answers[nextIndex]);
-      setVisitedQuestions(prev => new Set([...prev, nextIndex]));
-    }
-  };
-
   const handleSelectAnswer = (optionIndex: number) => {
-    setSelectedAnswer(optionIndex);
+    // If the same option is clicked again, deselect it
+    if (selectedAnswer === optionIndex) {
+      setSelectedAnswer(null);
+    } else {
+      setSelectedAnswer(optionIndex);
+    }
   };
 
   const handleNextQuestion = () => {
@@ -359,12 +381,13 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       // No marks deducted for skipped questions (answer === null)
     });
 
-    // Round score to 2 decimal places
-    score = Math.round(score * 100) / 100;
+    // Round score to 2 decimal places and ensure it's not negative
+    score = Math.max(0, Math.round(score * 100) / 100);
 
     const totalQuestions = questions.length;
+    // Calculate percentage based on actual score vs total possible marks
     const percentage = (score / totalQuestions) * 100;
-    const passingMarks = Math.ceil(totalQuestions * 0.4); // 40% passing criteria
+    const passingMarks = totalQuestions * 0.4; // 40% of total questions
     const passed = score >= passingMarks;
 
     return { score, percentage, passed };
@@ -672,9 +695,14 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
                     <p className="text-base font-semibold text-stone-800 leading-relaxed mb-2">
                       {reviewQuestion.question.en}
                     </p>
-                    <p className="text-sm text-stone-600 leading-relaxed bg-amber-50/50 p-3 rounded-lg border border-amber-100">
-                      {reviewQuestion.question.hi}
-                    </p>
+                    {
+                      reviewQuestion.question.hi && (
+                        <p className="text-sm text-stone-600 leading-relaxed bg-amber-50/50 p-3 rounded-lg border border-amber-100 font-hindi">
+                          {reviewQuestion.question.hi}
+                        </p>
+                      )
+                    }
+
                   </div>
 
                   {/* Options */}
@@ -708,9 +736,13 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
                               <p className={`text-sm font-medium mb-1 ${isCorrectAnswer ? 'text-emerald-800' : isUserAnswer ? 'text-rose-800' : 'text-stone-700'}`}>
                                 {option}
                               </p>
-                              <p className="text-xs text-stone-500">
-                                {reviewQuestion.options.hi[optIndex]}
-                              </p>
+                              {
+                                reviewQuestion.options.hi[optIndex] && (
+                                <p className="text-xs text-stone-500 font-hindi">
+                                  {reviewQuestion.options.hi[optIndex]}
+                                </p>)
+                              }
+                              
                             </div>
                             {isCorrectAnswer && (
                               <span className="flex-shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
@@ -831,15 +863,15 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'current':
-        return 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-lg ring-2 ring-teal-300';
+        return 'border-2 border-blue-500 bg-white text-stone-800 ring-2 ring-blue-300';
       case 'answered':
-        return 'bg-gradient-to-br from-emerald-400 to-green-500 text-white';
+        return 'bg-sky-400 text-white border-2 border-sky-400';
       case 'marked':
-        return 'bg-gradient-to-br from-amber-400 to-orange-500 text-white';
+        return 'bg-amber-500 text-white border-2 border-amber-500';
       case 'not-answered':
-        return 'bg-gradient-to-br from-rose-400 to-red-500 text-white';
+        return 'bg-stone-400 text-white border-2 border-stone-400';
       default:
-        return 'bg-stone-200 text-stone-500';
+        return 'bg-white text-stone-600 border-2 border-stone-300';
     }
   };
 
@@ -852,7 +884,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
             {/* Left - Back & Title */}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => router.push('/')}
+                onClick={handleSubmitClick}
                 className="p-2 hover:bg-stone-100 rounded-xl transition-all"
               >
                 <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -915,100 +947,20 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex justify-center">
-        {/* Question Area - Centered */}
-        <div className="w-full max-w-2xl p-4 lg:p-6">
+        {/* Question Area - Centered with wider max-width */}
+        <div className="w-full max-w-5xl p-4 lg:p-6">
           <div className="w-full">
-            {/* Question Card */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-4">
-              {/* Question Header */}
-              <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                      {currentQuestionIndex + 1}
-                    </span>
-                    <div className="text-white">
-                      <p className="text-sm opacity-90">Question {currentQuestionIndex + 1} of {totalQuestions}</p>
-                      <p className="text-xs opacity-75">+1 for correct, -0.33 for wrong</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleToggleMarkForReview}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      markedForReview[currentQuestionIndex]
-                        ? 'bg-amber-400 text-amber-900'
-                        : 'bg-white/20 text-white hover:bg-white/30'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill={markedForReview[currentQuestionIndex] ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                    <span className="hidden sm:inline">{markedForReview[currentQuestionIndex] ? 'Marked' : 'Mark for Review'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Question Text - Both Languages */}
-              <div className="p-5 sm:p-6 border-b border-stone-100">
-                <p className="text-base sm:text-lg font-semibold text-stone-800 leading-relaxed mb-3">
-                  {currentQuestion.question.en}
-                </p>
-                <p className="text-sm text-stone-600 leading-relaxed bg-amber-50/50 p-3 rounded-lg border border-amber-100">
-                  {currentQuestion.question.hi}
-                </p>
-              </div>
-
-              {/* Options - Both Languages */}
-              <div className="p-4 sm:p-5 space-y-3">
-                {currentQuestion.options.en.map((option, index) => {
-                  const isSelected = selectedAnswer === index;
-                  const optionLetter = String.fromCharCode(65 + index);
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleSelectAnswer(index)}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group ${
-                        isSelected
-                          ? 'border-teal-500 bg-teal-50 shadow-md'
-                          : 'border-stone-200 hover:border-teal-300 hover:bg-stone-50'
-                      }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Option Letter Badge */}
-                        <span className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base transition-all ${
-                          isSelected
-                            ? 'bg-teal-500 text-white shadow-md'
-                            : 'bg-stone-100 text-stone-600 group-hover:bg-teal-100 group-hover:text-teal-700'
-                        }`}>
-                          {optionLetter}
-                        </span>
-
-                        {/* Option Content - Both Languages */}
-                        <div className="flex-1 pt-1">
-                          <p className={`text-sm sm:text-base font-medium mb-1 ${
-                            isSelected ? 'text-teal-800' : 'text-stone-700'
-                          }`}>
-                            {option}
-                          </p>
-                          <p className="text-xs sm:text-sm text-stone-500">
-                            {currentQuestion.options.hi[index]}
-                          </p>
-                        </div>
-
-                        {/* Checkmark for selected */}
-                        {isSelected && (
-                          <span className="flex-shrink-0 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Use ExamQuestion Component */}
+            <div className="mb-4">
+              <ExamQuestion
+                question={currentQuestion}
+                questionIndex={currentQuestionIndex}
+                totalQuestions={totalQuestions}
+                selectedAnswer={selectedAnswer}
+                onSelectAnswer={handleSelectAnswer}
+                markedForReview={markedForReview[currentQuestionIndex]}
+                onToggleMarkForReview={handleToggleMarkForReview}
+              />
             </div>
 
             {/* Bottom Action Bar */}
@@ -1025,30 +977,6 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
                   </svg>
                   <span className="hidden sm:inline">Previous</span>
                 </button>
-
-                {/* Center Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleSkipQuestion}
-                    disabled={currentQuestionIndex === totalQuestions - 1}
-                    className="px-4 py-2.5 bg-stone-100 text-stone-600 rounded-xl hover:bg-stone-200 transition-all font-medium text-sm disabled:opacity-40"
-                  >
-                    Skip
-                  </button>
-                  <button
-                    onClick={handleToggleMarkForReview}
-                    className={`px-4 py-2.5 rounded-xl transition-all font-medium text-sm hidden sm:flex items-center gap-2 ${
-                      markedForReview[currentQuestionIndex]
-                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill={markedForReview[currentQuestionIndex] ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                    Review
-                  </button>
-                </div>
 
                 {/* Next/Submit Button */}
                 <button

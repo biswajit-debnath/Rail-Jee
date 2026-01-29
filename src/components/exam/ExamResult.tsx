@@ -78,39 +78,39 @@ export default function ExamResult({
       <main className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto">
           {/* Result Badge */}
-          <div className={`rounded-3xl p-8 text-center mb-6 ${
+          <div className={`rounded-2xl p-6 text-center mb-6 ${
             passed
               ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
               : 'bg-gradient-to-br from-amber-500 to-orange-600'
-          } text-white shadow-xl`}>
-            <div className="w-24 h-24 mx-auto mb-4 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
+          } text-white shadow-lg`}>
+            <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
               {passed ? (
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               ) : (
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
             </div>
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-1">
               {passed ? 'Congratulations!' : 'Keep Practicing!'}
             </h2>
-            <p className="text-white/90 text-lg mb-6">
+            <p className="text-white/90 mb-4 text-sm">
               {passed
                 ? 'You passed the exam successfully'
                 : 'You need to score at least 40% to pass'}
             </p>
-            <div className="flex items-center justify-center gap-8">
+            <div className="flex items-center justify-center gap-6">
               <div>
-                <p className="text-5xl font-bold mb-1">{score.toFixed(2)}</p>
-                <p className="text-white/80 text-sm">Your Score</p>
+                <p className="text-3xl font-bold mb-1">{score.toFixed(2)}</p>
+                <p className="text-white/80 text-xs">Your Score</p>
               </div>
-              <div className="w-px h-16 bg-white/30"></div>
+              <div className="w-px h-12 bg-white/30"></div>
               <div>
-                <p className="text-5xl font-bold mb-1">{percentage.toFixed(1)}%</p>
-                <p className="text-white/80 text-sm">Percentage</p>
+                <p className="text-3xl font-bold mb-1">{Math.max(0, percentage).toFixed(1)}%</p>
+                <p className="text-white/80 text-xs">Percentage</p>
               </div>
             </div>
           </div>

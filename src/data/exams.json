@@ -30,30 +30,47 @@
       {
         "id": 1,
         "question": {
-          "en": "What is the standard gauge width used in Indian Railways?",
-          "hi": "भारतीय रेलवे में प्रयोग होने वाली मानक गेज चौड़ाई क्या है?"
+          "en": "Which of the following is/are CORRECT with regard to Leave Preparatory to Retirement of a Railway Servant?",
+          "hi": "रेलवे सेवक के लिए सेवानिवृत्ति पूर्व अवकाश (Leave Preparatory to Retirement) के संबंध में निम्नलिखित में से कौन सा/से कथन सही है/हैं?"
         },
         "options": {
           "en": [
-            "1435 mm",
-            "1676 mm",
-            "1000 mm",
-            "762 mm"
+            "I, II, III only",
+            "All the given options are correct",
+            "None of the given options is correct",
+            "I, III, IV only"
           ],
           "hi": [
-            "1435 मिमी",
-            "1676 मिमी",
-            "1000 मिमी",
-            "762 मिमी"
+            "केवल I, II, III",
+            "सभी दिए गए विकल्प सही हैं",
+            "कोई भी दिया गया विकल्प सही नहीं है",
+            "केवल I, III, IV"
           ]
         },
+        "extras": [
+        {
+          "en": "I. Railway Servant not desirous of encashment of leave on average pay at his credit at the time of retirement on superannuation only can apply.",
+          "hi": "I. जो रेलवे सेवक केवल सुपरएन्नुएशन पर सेवानिवृत्ति के समय अपनी औसत वेतन अवकाश की नकदीकरण नहीं चाहते, वे ही आवेदन कर सकते हैं।"
+        },
+        {
+          "en": "II. The Leave that can be granted shall not exceed 300 days.",
+          "hi": "II. दी जाने वाली अवकाश अवधि 300 दिनों से अधिक नहीं होगी।"
+        },
+        {
+          "en": "III. The leave period may include LAP together with LHAP.",
+          "hi": "III. अवकाश अवधि में LAP के साथ LHAP भी शामिल हो सकता है।"
+        },
+        {
+          "en": "IV. Extraordinary leave can also be availed as Leave Preparatory to Retirement.",
+          "hi": "IV. असाधारण अवकाश को भी सेवानिवृत्ति पूर्व अवकाश के रूप में लिया जा सकता है।"
+        }
+      ],
         "correctAnswer": 1
       },
       {
         "id": 2,
         "question": {
-          "en": "Which type of current is used in Indian electric locomotives?",
-          "hi": "भारतीय विद्युत लोकोमोटिव में किस प्रकार की धारा का उपयोग किया जाता है?"
+          "en": "Which type of current is used in Indian electric locomotives?"
         },
         "options": {
           "en": [
@@ -61,12 +78,6 @@
             "AC only",
             "Both AC and DC",
             "None"
-          ],
-          "hi": [
-            "केवल डीसी",
-            "केवल एसी",
-            "एसी और डीसी दोनों",
-            "कोई नहीं"
           ]
         },
         "correctAnswer": 2

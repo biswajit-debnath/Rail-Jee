@@ -17,7 +17,7 @@ export default function DepartmentBanner({ department, activeTab, filteredCount 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-1">
-              {department.fullName} 👋
+              {department.fullName}
             </h1>
             <p className="text-teal-200 text-base lg:text-xl">
               {activeTab === 'papers' ? 'Choose a paper to start practicing' : 'Access study materials and resources'}

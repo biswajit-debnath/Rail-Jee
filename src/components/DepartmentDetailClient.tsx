@@ -63,12 +63,6 @@ interface DepartmentDetailClientProps {
   deptId: string;
 }
 
-const materialTypes = {
-  notes: { label: 'Study Notes', icon: '📝', color: 'bg-blue-100 text-blue-700' },
-  book: { label: 'Books', icon: '📚', color: 'bg-purple-100 text-purple-700' },
-  video: { label: 'Video Lectures', icon: '🎥', color: 'bg-red-100 text-red-700' },
-  guide: { label: 'Guides', icon: '📖', color: 'bg-green-100 text-green-700' },
-};
 
 const formatAttempts = (num: number) => {
   if (num >= 1000) {

@@ -112,7 +112,12 @@ export default function ExamInstructions({
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-lg lg:text-xl font-bold text-stone-900">{exam.duration} mins</div>
+                <div className="text-lg lg:text-xl font-bold text-stone-900">
+                  {exam.duration >= 60 
+                    ? `${Math.floor(exam.duration / 60)} hr${Math.floor(exam.duration / 60) > 1 ? 's' : ''}${exam.duration % 60 > 0 ? ` ${exam.duration % 60} mins` : ''}`
+                    : `${exam.duration} mins`
+                  }
+                </div>
                 <div className="text-xs lg:text-sm text-stone-500">Total Duration</div>
               </div>
             </div>

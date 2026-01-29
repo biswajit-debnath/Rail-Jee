@@ -31,9 +31,9 @@ export default function SubmitConfirmation({
     const isAnswered = answers[index] !== null;
     const isMarked = markedForReview[index];
     
-    if (isAnswered) return 'bg-emerald-500 text-white';
+    if (isAnswered) return 'bg-sky-400 text-white';
     if (isMarked) return 'bg-amber-500 text-white';
-    if (visitedQuestions.has(index)) return 'bg-rose-500 text-white';
+    if (visitedQuestions.has(index)) return 'bg-stone-400 text-white';
     return 'bg-stone-200 text-stone-600';
   };
 
@@ -48,29 +48,25 @@ export default function SubmitConfirmation({
 
         {/* Stats Summary */}
         <div className="p-5 bg-stone-50 border-b border-stone-100">
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-emerald-50 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-emerald-600">{answeredCount}</p>
-              <p className="text-[10px] text-emerald-700 uppercase tracking-wide">Answered</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-sky-50 rounded-xl p-3 border-2 border-sky-400 flex flex-col items-center justify-center">
+              <p className="text-2xl font-bold text-sky-600">{answeredCount}</p>
+              <p className="text-xs text-sky-700 uppercase tracking-wide">Answered</p>
             </div>
-            <div className="bg-stone-100 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-stone-600">{visitedCount}</p>
-              <p className="text-[10px] text-stone-700 uppercase tracking-wide">Visited</p>
+            <div className="bg-stone-50 rounded-xl p-3 border-2 border-stone-400 flex flex-col items-center justify-center">
+              <p className="text-2xl font-bold text-stone-600">{skippedCount}</p>
+              <p className="text-xs text-stone-700 uppercase tracking-wide">Skipped</p>
             </div>
-            <div className="bg-rose-50 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-rose-600">{skippedCount}</p>
-              <p className="text-[10px] text-rose-700 uppercase tracking-wide">Skipped</p>
-            </div>
-            <div className="bg-amber-50 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-amber-600">{markedCount}</p>
-              <p className="text-[10px] text-amber-700 uppercase tracking-wide">Review</p>
+            <div className="bg-amber-50 rounded-xl p-3 border-2 border-amber-500 flex flex-col items-center justify-center">
+              <p className="text-2xl font-bold text-amber-600">{markedCount}</p>
+              <p className="text-xs text-amber-700 uppercase tracking-wide">Review</p>
             </div>
           </div>
         </div>
 
         {/* Question Overview */}
         <div className="flex-1 overflow-y-auto p-5">
-          <p className="text-xs text-stone-500 uppercase tracking-wide mb-3 font-medium">Question Overview</p>
+          <p className="text-xs text-stone-500 uppercase tracking-wide mb-3 font-medium text-center">Question Overview</p>
           <div className="grid grid-cols-8 gap-2">
             {Array.from({ length: totalQuestions }).map((_, index) => {
               const statusColor = getQuestionStatus(index);
@@ -93,12 +89,12 @@ export default function SubmitConfirmation({
           {/* Legend */}
           <div className="grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-stone-100 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-emerald-500"></div>
+              <div className="w-3 h-3 rounded bg-sky-400"></div>
               <span className="text-stone-600">Answered</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-rose-500"></div>
-              <span className="text-stone-600">Not Answered</span>
+              <div className="w-3 h-3 rounded bg-stone-400"></div>
+              <span className="text-stone-600">Skipped</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-amber-500"></div>
