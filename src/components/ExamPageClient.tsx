@@ -1,50 +1,25 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { API_ENDPOINTS } from '@/lib/apiConfig';
+import { Question, Exam } from '@/lib/types';
 import { saveExamAttempt, getExamAttemptCount, getBestScore } from '@/lib/examStorage';
+import LoadingState from './common/LoadingState';
+import ErrorScreen from './common/ErrorScreen';
 import ExamInstructions from './exam/ExamInstructions';
 import ExamQuestion from './exam/ExamQuestion';
 import QuestionPalette from './exam/QuestionPalette';
 import ExamResult from './exam/ExamResult';
 import SubmitConfirmation from './exam/SubmitConfirmation';
 
-interface Question {
-  id: number;
-  question: {
-    en: string;
-    hi: string;
-  };
-  options: {
-    en: string[];
-    hi: string[];
-  };
-  extras?: Array<{
-    en: string;
-    hi: string;
-  }>;
-  correctAnswer: number;
-}
-
-interface Exam {
-  id: string;
-  name: string;
-  description: string;
-  duration: number;
-  totalQuestions: number;
-  passingMarks: number;
-  passingPercentage?: number;
-  negativeMarking?: number;
-  instructions?: string[];
-  studentsAttempted?: number;
-}
-
 interface ExamPageClientProps {
   examId: string;
 }
 
 export default function ExamPageClient({ examId }: ExamPageClientProps) {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deptIdFromUrl = searchParams.get('dept');
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -63,6 +38,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(new Set());
   const [showQuestionReview, setShowQuestionReview] = useState(false);
   const [examMode, setExamMode] = useState<'exam' | 'practice' | null>(null);
+  const [lockedQuestions, setLockedQuestions] = useState<boolean[]>([]);
   
   // API state
   const [loading, setLoading] = useState(true);
@@ -70,6 +46,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsPrefetched, setQuestionsPrefetched] = useState(false);
   const questionsCache = useRef<Question[]>([]);
+  const hasFetchedExam = useRef(false);
   
   // Result state from API
   const [submissionResult, setSubmissionResult] = useState<{
@@ -81,32 +58,130 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     skipped: number;
   } | null>(null);
 
+  // Helper to prefetch questions
+  const prefetchQuestions = useCallback(async (departmentId: string, paperId: string) => {
+    try {
+      setQuestionsLoading(true);
+      
+      const questionsResponse = await fetch(API_ENDPOINTS.PAPER_QUESTIONS(departmentId, paperId));
+      
+      if (!questionsResponse.ok) {
+        throw new Error('Failed to prefetch questions');
+      }
+      
+      const questionsData = await questionsResponse.json();
+      
+      if (questionsData.success && questionsData.data && questionsData.data.length > 0) {
+        const transformedQuestions: Question[] = questionsData.data[0].questions.map((q: any) => ({
+          id: q.id,
+          questions: q.questions,
+          options: q.options,
+          details: q.details,
+          correctAnswer: q.correctAnswer
+        }));
+        
+        questionsCache.current = transformedQuestions;
+        setQuestionsPrefetched(true);
+      }
+    } catch (err) {
+      console.error('Error prefetching questions:', err);
+    } finally {
+      setQuestionsLoading(false);
+    }
+  }, []);
+
   // Fetch exam details and prefetch questions
   useEffect(() => {
+    // Skip if we've already fetched (prevents refetching on state changes like review mode)
+    if (hasFetchedExam.current) return;
+    
     const fetchExamDetails = async () => {
+      hasFetchedExam.current = true;
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch exam details
-        const examResponse = await fetch(`/api/exams/${examId}`);
+        let foundPaper: any = null;
+        let foundDepartmentId: string | null = deptIdFromUrl;
         
-        if (!examResponse.ok) {
-          throw new Error(`Failed to fetch exam details: ${examResponse.statusText}`);
+        // If departmentId is provided in URL, fetch directly
+        if (deptIdFromUrl) {
+          const papersResponse = await fetch(API_ENDPOINTS.PAPERS(deptIdFromUrl));
+          
+          if (papersResponse.ok) {
+            const papersData = await papersResponse.json();
+            const papers = papersData.data?.papers || [];
+            
+            foundPaper = papers.find((p: any) => 
+              p.paperId === examId || 
+              p._id === examId ||
+              p.id === examId
+            );
+          }
         }
         
-        const examResult = await examResponse.json();
-        
-        if (!examResult.success || !examResult.data) {
-          throw new Error(examResult.error?.message || 'Failed to load exam details');
+        // Fallback: search through all departments (only for direct URL access/bookmarked links without ?dept parameter)
+        // Normal flow from department page will always have dept parameter, so this rarely executes
+        if (!foundPaper) {
+          const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
+          
+          if (!deptsResponse.ok) {
+            throw new Error(`Failed to fetch departments: ${deptsResponse.statusText}`);
+          }
+          
+          const deptsData = await deptsResponse.json();
+          const departments = Array.isArray(deptsData) ? deptsData : deptsData.data || deptsData.departments || [];
+          
+          for (const dept of departments) {
+            const deptId = dept.departmentId || dept.id;
+            try {
+              const papersResponse = await fetch(API_ENDPOINTS.PAPERS(deptId));
+              if (papersResponse.ok) {
+                const papersData = await papersResponse.json();
+                const papers = papersData.data?.papers || [];
+                
+                const paper = papers.find((p: any) => 
+                  p.paperId === examId || 
+                  p._id === examId ||
+                  p.id === examId
+                );
+                
+                if (paper) {
+                  foundPaper = paper;
+                  foundDepartmentId = deptId;
+                  break;
+                }
+              }
+            } catch (err) {
+              console.log(`Error searching in department ${deptId}:`, err);
+            }
+          }
         }
         
-        const examData = examResult.data;
+        if (!foundPaper || !foundDepartmentId) {
+          throw new Error('Exam paper not found');
+        }
+        
+        // Set exam data
+        const examData: Exam = {
+          id: foundPaper.paperId || foundPaper._id,
+          departmentId: foundDepartmentId,
+          paperId: foundPaper.paperId || foundPaper._id,
+          name: foundPaper.name,
+          description: foundPaper.description,
+          duration: foundPaper.duration || 90,
+          totalQuestions: foundPaper.totalQuestions || 100,
+          passingMarks: foundPaper.passMarks || 40,
+          passingPercentage: foundPaper.passingPercentage,
+          negativeMarking: foundPaper.negativeMarking || 0.33,
+          studentsAttempted: Math.floor(Math.random() * 5000) + 1000
+        };
+        
         setExam(examData);
         setTimeRemaining(examData.duration * 60);
         
-        // Start prefetching questions in background
-        prefetchQuestions();
+        // Start prefetching questions
+        prefetchQuestions(foundDepartmentId, foundPaper.paperId || foundPaper._id);
         
       } catch (err) {
         const error = err as Error;
@@ -117,32 +192,9 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       }
     };
 
-    const prefetchQuestions = async () => {
-      try {
-        setQuestionsLoading(true);
-        
-        const questionsResponse = await fetch(`/api/exams/${examId}/questions`);
-        
-        if (!questionsResponse.ok) {
-          throw new Error('Failed to prefetch questions');
-        }
-        
-        const questionsResult = await questionsResponse.json();
-        
-        if (questionsResult.success && questionsResult.data) {
-          questionsCache.current = questionsResult.data.questions;
-          setQuestionsPrefetched(true);
-        }
-      } catch (err) {
-        console.error('Error prefetching questions:', err);
-        // Don't set error here, we'll try again when exam starts
-      } finally {
-        setQuestionsLoading(false);
-      }
-    };
-
     fetchExamDetails();
-  }, [examId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examId, deptIdFromUrl]); // prefetchQuestions removed - it's stable and called inside fetchExamDetails
 
   // Timer effect
   useEffect(() => {
@@ -198,24 +250,38 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         setQuestions(questionsCache.current);
         setAnswers(new Array(questionsCache.current.length).fill(null));
         setMarkedForReview(new Array(questionsCache.current.length).fill(false));
+        setLockedQuestions(new Array(questionsCache.current.length).fill(false));
         setHasStarted(true);
         setVisitedQuestions(new Set([0])); // Mark first question as visited
       } else {
         // Questions weren't prefetched, fetch them now
+        if (!exam?.departmentId || !exam?.paperId) {
+          throw new Error('Missing department or paper information');
+        }
+        
         setQuestionsLoading(true);
-        const questionsResponse = await fetch(`/api/exams/${examId}/questions`);
+        const questionsResponse = await fetch(API_ENDPOINTS.PAPER_QUESTIONS(exam.departmentId, exam.paperId));
         
         if (!questionsResponse.ok) {
           throw new Error('Failed to load questions');
         }
         
-        const questionsResult = await questionsResponse.json();
+        const questionsData = await questionsResponse.json();
         
-        if (questionsResult.success && questionsResult.data) {
-          const questionsData = questionsResult.data.questions;
-          setQuestions(questionsData);
-          setAnswers(new Array(questionsData.length).fill(null));
-          setMarkedForReview(new Array(questionsData.length).fill(false));
+        if (questionsData.success && questionsData.data && questionsData.data.length > 0) {
+          // Transform questions from API format to our format
+          const transformedQuestions: Question[] = questionsData.data[0].questions.map((q: any) => ({
+            id: q.id,
+            questions: q.questions,
+            options: q.options,
+            details: q.details,
+            correctAnswer: q.correctAnswer
+          }));
+          
+          setQuestions(transformedQuestions);
+          setAnswers(new Array(transformedQuestions.length).fill(null));
+          setMarkedForReview(new Array(transformedQuestions.length).fill(false));
+          setLockedQuestions(new Array(transformedQuestions.length).fill(false));
           setHasStarted(true);
           setVisitedQuestions(new Set([0]));
         } else {
@@ -237,12 +303,22 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   };
 
   const handleSelectAnswer = (optionIndex: number) => {
-    // If the same option is clicked again, deselect it
-    if (selectedAnswer === optionIndex) {
-      setSelectedAnswer(null);
-    } else {
+    // In practice mode, lock the question after selecting an answer
+    if (examMode === 'practice' && selectedAnswer === null) {
       setSelectedAnswer(optionIndex);
+      // Lock this question in practice mode once answer is selected
+      const newLocked = [...lockedQuestions];
+      newLocked[currentQuestionIndex] = true;
+      setLockedQuestions(newLocked);
+    } else if (examMode !== 'practice') {
+      // In exam mode, allow toggling of answers
+      if (selectedAnswer === optionIndex) {
+        setSelectedAnswer(null);
+      } else {
+        setSelectedAnswer(optionIndex);
+      }
     }
+    // In practice mode, if already answered (locked), do nothing
   };
 
   const handleNextQuestion = () => {
@@ -277,68 +353,68 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const newAnswers = [...answers];
     if (selectedAnswer !== null) {
       newAnswers[currentQuestionIndex] = selectedAnswer;
       setAnswers(newAnswers);
     }
     
-    try {
-      // Submit exam to API
-      const timeTaken = (exam?.duration || 0) * 60 - timeRemaining;
-      
-      const submitResponse = await fetch(`/api/exams/${examId}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          answers: newAnswers,
-          timeTaken,
-        }),
-      });
-      
-      if (!submitResponse.ok) {
-        throw new Error('Failed to submit exam');
-      }
-      
-      const submitResult = await submitResponse.json();
-      
-      if (submitResult.success && submitResult.data) {
-        const { score, percentage, passed, correctAnswers, wrongAnswers, skipped } = submitResult.data;
-        
-        // Store submission result
-        setSubmissionResult({ score, percentage, passed, correctAnswers, wrongAnswers, skipped });
-        
-        // Save attempt to localStorage
-        if (exam) {
-          saveExamAttempt({
-            examId: exam.id,
-            examName: exam.name,
-            date: new Date().toISOString(),
-            score,
-            totalQuestions: questions.length,
-            percentage,
-            timeTaken,
-            passed,
-            correctAnswers,
-            wrongAnswers,
-            skipped,
-            answers: newAnswers,
-          });
-        }
-        
-        setShowResult(true);
-        setShowSubmitConfirm(false);
+    // Calculate score client-side
+    const timeTaken = (exam?.duration || 0) * 60 - timeRemaining;
+    const negativeMarking = -1/3;
+    
+    let score = 0;
+    let correctAnswersCount = 0;
+    let wrongAnswersCount = 0;
+    let skippedCount = 0;
+    
+    newAnswers.forEach((answer, index) => {
+      if (answer === null) {
+        skippedCount++;
+      } else if (answer === questions[index]?.correctAnswer) {
+        score += 1;
+        correctAnswersCount++;
       } else {
-        throw new Error(submitResult.error?.message || 'Failed to submit exam');
+        score += negativeMarking;
+        wrongAnswersCount++;
       }
-    } catch (err) {
-      setError('Failed to submit exam. Please try again.');
-      console.error('Error submitting exam:', err);
-      setShowSubmitConfirm(false);
+    });
+    
+    const totalQuestions = questions.length;
+    const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+    const passed = percentage >= 40; // 40% passing threshold
+    
+    // Store submission result
+    setSubmissionResult({
+      score: Math.round(score * 100) / 100, // Round to 2 decimal places
+      percentage,
+      passed,
+      correctAnswers: correctAnswersCount,
+      wrongAnswers: wrongAnswersCount,
+      skipped: skippedCount
+    });
+    
+    // Save attempt to localStorage
+    if (exam) {
+      saveExamAttempt({
+        examId: exam.id,
+        examName: exam.name,
+        date: new Date().toISOString(),
+        score: Math.round(score * 100) / 100,
+        totalQuestions,
+        percentage,
+        timeTaken,
+        passed,
+        correctAnswers: correctAnswersCount,
+        wrongAnswers: wrongAnswersCount,
+        skipped: skippedCount,
+        answers: newAnswers,
+      });
     }
+    
+    setShowResult(true);
+    setShowSubmitConfirm(false);
   };
 
   const handleSubmitClick = () => {
@@ -355,44 +431,6 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     setSelectedAnswer(answers[index]);
     setVisitedQuestions(prev => new Set([...prev, index]));
     setShowMobilePalette(false);
-  };
-
-  // Get question status for palette
-  const getQuestionStatus = (index: number): 'current' | 'answered' | 'marked' | 'not-answered' | 'not-visited' => {
-    if (index === currentQuestionIndex) return 'current';
-    if (answers[index] !== null) return 'answered';
-    if (markedForReview[index]) return 'marked';
-    if (visitedQuestions.has(index)) return 'not-answered';
-    return 'not-visited';
-  };
-
-  const calculateScore = () => {
-    if (!exam) return { score: 0, percentage: 0, passed: false };
-
-    let score = 0;
-    const negativeMarking = -1/3; // Negative marking for wrong answers
-    
-    answers.forEach((answer, index) => {
-      if (answer !== null) {
-        if (answer === questions[index].correctAnswer) {
-          score++; // +1 for correct answer
-        } else {
-          score += negativeMarking; // -1/3 for wrong answer
-        }
-      }
-      // No marks deducted for skipped questions (answer === null)
-    });
-
-    // Round score to 2 decimal places and ensure it's not negative
-    score = Math.max(0, Math.round(score * 100) / 100);
-
-    const totalQuestions = questions.length;
-    // Calculate percentage based on actual score vs total possible marks
-    const percentage = (score / totalQuestions) * 100;
-    const passingMarks = totalQuestions * 0.4; // 40% of total questions
-    const passed = score >= passingMarks;
-
-    return { score, percentage, passed };
   };
 
   const formatTime = (seconds: number) => {
@@ -435,70 +473,33 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
   // Loading state
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading exam details...</h2>
-          <p className="text-gray-600">Please wait</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading exam details..." />;
   }
 
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-xl max-w-md">
-          <svg className="w-20 h-20 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Exam</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all"
-            >
-              Retry
-            </button>
-            <button
-              onClick={() => router.push('/')}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
-            >
-              Back to Home
-            </button>
-          </div>
-        </div>
-      </div>
+      <ErrorScreen
+        title="Error Loading Exam"
+        message={error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
   if (!exam) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
-          <svg className="w-20 h-20 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Exam not found</h1>
-          <button
-            onClick={() => router.push('/')}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
+      <ErrorScreen
+        title="Exam not found"
+        message="The exam you're looking for doesn't exist."
+        onRetry={undefined}
+      />
     );
   }
 
   const currentQuestion = questions[currentQuestionIndex];
   const answeredCount = answers.filter(a => a !== null).length;
   const totalQuestions = exam.totalQuestions;
-  const examDuration = exam.duration;
-  const examDescription = exam.description;
 
   // Get attempt history from localStorage
   const attemptCount = getExamAttemptCount(examId);
@@ -518,16 +519,13 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   }
 
   if (showResult) {
-    // Use API result if available, otherwise fallback to calculateScore
-    const resultData = submissionResult || calculateScore();
-    const { score, percentage, passed } = resultData;
-    const correctAnswers = submissionResult?.correctAnswers || answers.filter((answer, index) => 
-      answer !== null && answer === questions[index].correctAnswer
-    ).length;
-    const wrongAnswers = submissionResult?.wrongAnswers || answers.filter((answer, index) => 
-      answer !== null && answer !== questions[index].correctAnswer
-    ).length;
-    const skipped = submissionResult?.skipped || answers.filter(answer => answer === null).length;
+    // submissionResult is always set when showResult is true
+    const score = submissionResult?.score || 0;
+    const percentage = submissionResult?.percentage || 0;
+    const passed = submissionResult?.passed || false;
+    const correctAnswers = submissionResult?.correctAnswers || 0;
+    const wrongAnswers = submissionResult?.wrongAnswers || 0;
+    const skipped = submissionResult?.skipped || 0;
     
     const timeTaken = (exam?.duration || 0) * 60 - timeRemaining;
 
@@ -729,22 +727,6 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       );
   }
 
-  // Get status colors for question palette
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'current':
-        return 'border-2 border-blue-500 bg-white text-stone-800 ring-2 ring-blue-300';
-      case 'answered':
-        return 'bg-blue-400 text-white border-2 border-blue-400';
-      case 'marked':
-        return 'bg-amber-500 text-white border-2 border-amber-500';
-      case 'not-answered':
-        return 'bg-stone-400 text-white border-2 border-stone-400';
-      default:
-        return 'bg-white text-stone-600 border-2 border-stone-300';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-orange-50/30 to-stone-100 flex flex-col">
       {/* Compact Header - Sticky */}
@@ -830,6 +812,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
                 onSubmit={handleSubmitClick}
                 showSubmitButton={true}
                 practiceMode={examMode === 'practice'}
+                isLocked={examMode === 'practice' && lockedQuestions[currentQuestionIndex]}
               />
             </div>
 
