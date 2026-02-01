@@ -1,11 +1,11 @@
-import Navbar from '@/components/Navbar';
-import Hero from '@/components/Hero';
-import DepartmentShowcase from '@/components/DepartmentShowcase';
-import ExamCards from '@/components/ExamCards';
-import Features from '@/components/Features';
-import HowItWorks from '@/components/HowItWorks';
-import Testimonials from '@/components/Testimonials';
-import Footer from '@/components/Footer';
+import Navbar from '@/components/home/Navbar';
+import Hero from '@/components/home/Hero';
+import DepartmentShowcase from '@/components/home/DepartmentShowcase';
+import ExamCards from '@/components/home/ExamCards';
+import Features from '@/components/home/Features';
+import HowItWorks from '@/components/home/HowItWorks';
+import Testimonials from '@/components/home/Testimonials';
+import Footer from '@/components/home/Footer';
 
 export default function Home() {
   return (

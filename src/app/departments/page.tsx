@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_ENDPOINTS } from '@/lib/apiConfig';
+import LoadingScreen from '@/components/LoadingScreen';
 
 interface Department {
   id: string;
+  departmentId?: string;
   name: string;
   fullName: string;
   description: string;
@@ -88,31 +91,46 @@ export default function DepartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Color gradient mapping for different icons
+  const colorMapping: { [key: string]: { gradient: string; bg: string } } = {
+    building: { gradient: 'from-red-600 to-red-800', bg: 'bg-red-50' },
+    wrench: { gradient: 'from-orange-600 to-red-700', bg: 'bg-orange-50' },
+    bolt: { gradient: 'from-amber-600 to-orange-700', bg: 'bg-amber-50' },
+    currency: { gradient: 'from-orange-600 to-orange-700', bg: 'bg-orange-50' },
+    users: { gradient: 'from-blue-600 to-indigo-700', bg: 'bg-blue-50' },
+    train: { gradient: 'from-purple-600 to-violet-700', bg: 'bg-purple-50' },
+    signal: { gradient: 'from-cyan-600 to-blue-700', bg: 'bg-cyan-50' },
+    metro: { gradient: 'from-red-600 to-red-700', bg: 'bg-red-50' }
+  };
+
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch from API
-        const response = await fetch('/api/departments');
+        // Fetch directly from external API
+        const response = await fetch(API_ENDPOINTS.DEPARTMENTS);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch departments: ${response.statusText}`);
         }
         
-        const result = await response.json();
+        const apiData = await response.json();
         
-        if (!result.success || !result.data) {
-          throw new Error(result.error?.message || 'Failed to load departments');
-        }
+        // Map external API response to our format
+        const departments = Array.isArray(apiData) ? apiData : apiData.data || apiData.departments || [];
         
-        const data = result.data;
-        
-        // Map API data to include icon components
-        const departmentsWithIcons: Department[] = data.map((dept: ApiDepartment) => ({
-          ...dept,
-          icon: getIconComponent(dept.icon)
+        const departmentsWithIcons: Department[] = departments.map((dept: any) => ({
+          id: dept.slug || dept.departmentId || dept.id,
+          name: dept.name || dept.fullName || 'Department',
+          fullName: dept.fullName || dept.name || 'Department',
+          description: dept.description || 'Department description',
+          icon: getIconComponent(dept.icon || 'building'),
+          color: colorMapping[dept.icon] || colorMapping.building,
+          paperCount: dept.paperCount || 0,
+          materialCount: dept.materialCount || 0,
+          departmentId: dept.departmentId 
         }));
         
         setDepartments(departmentsWithIcons);
@@ -121,7 +139,9 @@ export default function DepartmentsPage() {
         setError(error.message || 'Failed to load departments');
         console.error('Error fetching departments:', err);
       } finally {
-        setLoading(false);
+        setTimeout(
+          () => setLoading(false), 1500)
+        
       }
     };
 
@@ -139,12 +159,10 @@ export default function DepartmentsPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-          <p className="text-stone-600 font-medium">Loading departments...</p>
-        </div>
-      </div>
+      <>
+        <LoadingScreen isLoading={true} message="Loading departments..." />
+        <div className="min-h-screen bg-[#faf9f7]" />
+      </>
     );
   }
 
@@ -170,27 +188,43 @@ export default function DepartmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f7]">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20">
-            <Link href="/" className="flex items-center gap-3 group">
-              <button className="p-2 hover:bg-stone-100 rounded-xl transition-all">
-                <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <>
+      <style jsx>{`
+        @keyframes subtleBounce {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+        
+        .bounce-card {
+          animation: subtleBounce 3s ease-in-out infinite;
+        }
+      `}</style>
+      
+      <div className="min-h-screen bg-[#faf9f7]">
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
+              <button className="p-1.5 sm:p-2 hover:bg-stone-100 rounded-lg sm:rounded-xl transition-all">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-stone-900">Select Department</h1>
-                <p className="text-xs text-stone-500 hidden sm:block">Choose your preparation area</p>
+                <h1 className="text-sm sm:text-md font-bold text-stone-900">Select Department</h1>
+                <p className="text-xxs sm:text-xs text-stone-500 hidden sm:block">Choose your preparation area</p>
               </div>
             </Link>
             <Link href="/" className="transition-transform hover:scale-105">
               <img
                 src="/images/logo.png"
                 alt="RailJee Logo"
-                className="h-10 sm:h-12 w-auto"
+                className="h-8 sm:h-10 lg:h-12 w-auto"
               />
             </Link>
           </div>
@@ -198,13 +232,13 @@ export default function DepartmentsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Page Title */}
-        <div className="text-center mb-10 sm:mb-14">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-900 mb-4">
+        <div className="text-center mb-4 sm:mb-6 lg:mb-8">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-stone-900 mb-2 sm:mb-3">
             What are you preparing for?
           </h2>
-          <p className="text-lg text-stone-600 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-stone-600 max-w-2xl mx-auto px-4">
             Select your department to access specialized practice tests and study materials
           </p>
         </div>
@@ -212,12 +246,12 @@ export default function DepartmentsPage() {
         
 
         {/* Animated Train SVG */}
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center mb-4 sm:mb-6 lg:mb-8">
           <div className="relative">
             <img 
               src="/images/train-svg.svg" 
               alt="Train" 
-              className="h-16 sm:h-20 lg:h-24 w-auto mx-auto"
+              className="h-10 sm:h-14 lg:h-16 w-auto mx-auto"
               style={{
                 filter: 'brightness(0) saturate(100%) invert(27%) sepia(93%) saturate(2345%) hue-rotate(346deg) brightness(93%) contrast(101%)'
               }}
@@ -226,20 +260,21 @@ export default function DepartmentsPage() {
         </div>
 
         {/* Departments Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 pb-6">
           {departments.map((dept, index) => (
             <button
               key={dept.id}
               onClick={() => handleDepartmentClick(dept.id)}
               onMouseEnter={() => setHoveredDept(dept.id)}
               onMouseLeave={() => setHoveredDept(null)}
-              className={`group relative overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-left transition-all duration-300 transform ${
+              className={`bounce-card group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 text-left transition-all duration-300 transform ${
                 selectedDept === dept.id 
                   ? 'scale-95 opacity-50' 
                   : 'hover:scale-[1.02] hover:shadow-2xl'
               }`}
               style={{
-                animationDelay: `${index * 50}ms`
+                animationDelay: `${index * 0.2}s`,
+                boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.25), 0 12px 25px -5px rgba(0, 0, 0, 0.15)'
               }}
             >
               {/* Background Gradient */}
@@ -247,36 +282,36 @@ export default function DepartmentsPage() {
               
               {/* Decorative Pattern */}
               <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                <div className="absolute top-0 right-0 w-20 sm:w-32 h-20 sm:h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-16 sm:w-24 h-16 sm:h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
               </div>
 
               {/* Content */}
-              <div className="relative z-10 h-full flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+              <div className="relative z-10 h-full flex flex-col justify-between min-h-[110px] sm:min-h-[130px] lg:min-h-[140px]">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">
+                  <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white mb-0.5 sm:mb-1 leading-tight">
                     {dept.name}
                   </h3>
-                  <p className="text-white/70 text-xs sm:text-sm line-clamp-2 hidden sm:block">
+                  <p className="text-white/70 text-xxs sm:text-xs line-clamp-2 hidden sm:block">
                     {dept.description}
                   </p>
                 </div>
 
-                <div className="flex items-end justify-between mt-4">
+                <div className="flex items-end justify-between mt-2 sm:mt-3 lg:mt-4">
                   {/* Arrow */}
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center transition-all duration-300 ${
+                  <div className={`w-7 h-7 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center transition-all duration-300 ${
                     hoveredDept === dept.id ? 'bg-white/30 translate-x-1' : ''
                   }`}>
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                   </div>
 
                   {/* Railway Emblem */}
-                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-yellow-400/80 bg-white/90 flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-full border-2 border-yellow-400/80 bg-white/90 flex items-center justify-center shadow-lg transition-all duration-300 ${
                     hoveredDept === dept.id ? 'scale-110 rotate-6' : ''
                   }`}>
-                    <div className="text-red-700">
+                    <div className="text-red-700 scale-75 sm:scale-90 lg:scale-100">
                       {dept.icon}
                     </div>
                   </div>
@@ -292,27 +327,18 @@ export default function DepartmentsPage() {
         </div>
 
         {/* Bottom Info */}
-        <div className="mt-12 sm:mt-16 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-full shadow-md">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-stone-600 text-sm sm:text-base">
-              <span className="font-semibold text-stone-900">{departments.length} Departments</span> available for practice
-            </span>
-          </div>
-        </div>
 
         {/* Decorative Track */}
-        <div className="mt-12 sm:mt-16 relative">
-          <div className="h-3 bg-stone-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500 w-1/3 rounded-full animate-pulse"></div>
-          </div>
-          <div className="flex justify-between mt-2 px-2">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="w-4 h-1 bg-stone-300 rounded"></div>
-            ))}
-          </div>
+        <div className="mt-6 sm:mt-8 lg:mt-10 relative h-16 sm:h-40 overflow-hidden rounded-xl">
+          <img
+            src="/images/railway_track.png"
+            alt="Railway Track"
+            className="w-full h-full object-cover opacity-80"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-orange-500/10 to-transparent"></div>
         </div>
       </main>
     </div>
+    </>
   );
 }

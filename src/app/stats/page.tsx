@@ -149,7 +149,7 @@ export default function StatsPage() {
                 }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
                   selectedDepartment === dept.id
-                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
@@ -168,7 +168,7 @@ export default function StatsPage() {
           {/* Total Attempts */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-100">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -181,7 +181,7 @@ export default function StatsPage() {
           {/* Pass Rate */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-100">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -239,7 +239,7 @@ export default function StatsPage() {
                 </div>
                 <div className="h-3 bg-stone-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-400 to-green-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full transition-all duration-500"
                     style={{ width: `${(deptStats.totalPassed / deptStats.totalAttempts) * 100}%` }}
                   />
                 </div>
@@ -267,7 +267,7 @@ export default function StatsPage() {
                 </div>
                 <div className="h-3 bg-stone-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-500"
                     style={{ width: `${deptStats.averageScore}%` }}
                   />
                 </div>
@@ -310,7 +310,7 @@ export default function StatsPage() {
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                           examAttempts.length > 0 
-                            ? 'bg-gradient-to-br from-teal-400 to-emerald-500' 
+                            ? 'bg-gradient-to-br from-orange-400 to-orange-500' 
                             : 'bg-stone-200'
                         }`}>
                           <svg className={`w-5 h-5 ${examAttempts.length > 0 ? 'text-white' : 'text-stone-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,7 +329,7 @@ export default function StatsPage() {
                         {bestAttempt && (
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                             bestAttempt.passed 
-                              ? 'bg-emerald-100 text-emerald-700' 
+                              ? 'bg-yellow-100 text-yellow-700' 
                               : 'bg-amber-100 text-amber-700'
                           }`}>
                             {bestAttempt.passed ? 'Passed' : 'In Progress'}
@@ -350,14 +350,14 @@ export default function StatsPage() {
                             onClick={() => setExpandedAttempt(expandedAttempt === idx ? null : idx)}
                             className={`p-3 rounded-xl border cursor-pointer transition-all ${
                               attempt.passed 
-                                ? 'bg-emerald-50 border-emerald-200' 
+                                ? 'bg-yellow-50 border-yellow-200' 
                                 : 'bg-stone-50 border-stone-200'
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                                  attempt.passed ? 'bg-emerald-500 text-white' : 'bg-stone-300 text-stone-600'
+                                  attempt.passed ? 'bg-yellow-500 text-white' : 'bg-stone-300 text-stone-600'
                                 }`}>
                                   #{attempt.attemptNumber}
                                 </span>
@@ -376,11 +376,11 @@ export default function StatsPage() {
                             {expandedAttempt === idx && (
                               <div className="mt-3 pt-3 border-t border-stone-200 grid grid-cols-3 gap-2">
                                 <div className="text-center p-2 bg-white rounded-lg">
-                                  <p className="text-lg font-bold text-emerald-600">{attempt.correctAnswers}</p>
+                                  <p className="text-lg font-bold text-yellow-600">{attempt.correctAnswers}</p>
                                   <p className="text-xs text-stone-500">Correct</p>
                                 </div>
                                 <div className="text-center p-2 bg-white rounded-lg">
-                                  <p className="text-lg font-bold text-rose-600">{attempt.wrongAnswers}</p>
+                                  <p className="text-lg font-bold text-red-600">{attempt.wrongAnswers}</p>
                                   <p className="text-xs text-stone-500">Wrong</p>
                                 </div>
                                 <div className="text-center p-2 bg-white rounded-lg">
@@ -398,7 +398,7 @@ export default function StatsPage() {
                             e.stopPropagation();
                             router.push(`/exam/${exam.id}`);
                           }}
-                          className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all"
+                          className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all"
                         >
                           Take Exam Again
                         </button>
@@ -414,7 +414,7 @@ export default function StatsPage() {
                             e.stopPropagation();
                             router.push(`/exam/${exam.id}`);
                           }}
-                          className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all"
+                          className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all"
                         >
                           Start Exam
                         </button>
@@ -440,7 +440,7 @@ export default function StatsPage() {
                     {/* Timeline Line */}
                     <div className="flex flex-col items-center">
                       <div className={`w-3 h-3 rounded-full ${
-                        attempt.passed ? 'bg-emerald-500' : 'bg-rose-500'
+                        attempt.passed ? 'bg-yellow-500' : 'bg-red-500'
                       }`} />
                       {idx < filteredAttempts.slice(0, 10).length - 1 && (
                         <div className="w-0.5 h-12 bg-stone-200 mt-1" />
@@ -455,7 +455,7 @@ export default function StatsPage() {
                           <p className="text-xs text-stone-500">{formatDate(attempt.date)}</p>
                         </div>
                         <div className="text-right">
-                          <p className={`font-bold ${attempt.passed ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <p className={`font-bold ${attempt.passed ? 'text-yellow-600' : 'text-red-600'}`}>
                             {attempt.percentage.toFixed(1)}%
                           </p>
                           <p className="text-xs text-stone-500">Attempt #{attempt.attemptNumber}</p>
@@ -464,8 +464,8 @@ export default function StatsPage() {
                       
                       {/* Mini Stats */}
                       <div className="mt-2 flex gap-3 text-xs">
-                        <span className="text-emerald-600">✓ {attempt.correctAnswers}</span>
-                        <span className="text-rose-600">✗ {attempt.wrongAnswers}</span>
+                        <span className="text-yellow-600">✓ {attempt.correctAnswers}</span>
+                        <span className="text-red-600">✗ {attempt.wrongAnswers}</span>
                         <span className="text-amber-600">○ {attempt.skipped}</span>
                         <span className="text-stone-400">• {formatTime(attempt.timeTaken)}</span>
                       </div>
@@ -493,7 +493,7 @@ export default function StatsPage() {
             </p>
             <button
               onClick={() => router.push('/')}
-              className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               Browse Exams
             </button>
