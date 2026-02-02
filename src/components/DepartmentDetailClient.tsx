@@ -310,8 +310,9 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
   }
 
   const handlePaperSelect = (paper: ExamPaper) => {
-    // Navigate with slug instead of departmentId
-    router.push(`/exam/${paper.examId}?dept=${slug}`);
+    // Navigate with 'general' slug if general filter is active, otherwise use current department slug
+    const deptSlug = selectedSubject !== 'All' ? 'general' : slug;
+    router.push(`/exam/${paper.examId}?dept=${deptSlug}`);
   };
 
   const handleTabChange = (tab: 'papers' | 'materials') => {

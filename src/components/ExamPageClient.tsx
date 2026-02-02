@@ -108,40 +108,74 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         
         // If department slug is provided in URL, resolve it to departmentId
         if (deptSlugFromUrl) {
-          // Try to get department from cache first
-          const cachedDept = departmentCache.findDepartment(deptSlugFromUrl);
-          
-          if (cachedDept) {
-            foundDepartmentId = cachedDept.departmentId || cachedDept.id;
-            console.log('ExamPage - Resolved slug to deptId from cache:', deptSlugFromUrl, '->', foundDepartmentId);
-          } else {
-            // Not in cache, fetch departments to resolve slug
-            console.log('ExamPage - Slug not in cache, fetching departments to resolve');
-            const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
-            
-            if (deptsResponse.ok) {
-              const deptsData = await deptsResponse.json();
-              const departments = deptsData.data?.departments || [];
+          // Special handling for 'general' slug
+          if (deptSlugFromUrl.toLowerCase() === 'general') {
+            const generalDeptId = departmentCache.getGeneralDeptId();
+            if (generalDeptId) {
+              foundDepartmentId = generalDeptId;
+              console.log('ExamPage - Using generalDeptId from cache for general slug:', foundDepartmentId);
+            } else {
+              // Fetch departments to get generalDeptId
+              console.log('ExamPage - General slug but no cache, fetching departments');
+              const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
               
-              // Cache for future use
-              const metadata = deptsData.data?.metadata || {};
-              departmentCache.set({
-                departments,
-                metadata: {
-                  generalDeptId: metadata.general?.departmentId,
-                  ...metadata
+              if (deptsResponse.ok) {
+                const deptsData = await deptsResponse.json();
+                const departments = deptsData.data?.departments || [];
+                const metadata = deptsData.data?.metadata || {};
+                const fetchedGeneralDeptId = metadata.general?.departmentId;
+                
+                if (fetchedGeneralDeptId) {
+                  foundDepartmentId = fetchedGeneralDeptId;
+                  console.log('ExamPage - Fetched generalDeptId for general slug:', foundDepartmentId);
+                  
+                  // Cache for future use
+                  departmentCache.set({
+                    departments,
+                    metadata: {
+                      generalDeptId: fetchedGeneralDeptId,
+                      ...metadata
+                    }
+                  });
                 }
-              });
+              }
+            }
+          } else {
+            // Try to get department from cache first
+            const cachedDept = departmentCache.findDepartment(deptSlugFromUrl);
+            
+            if (cachedDept) {
+              foundDepartmentId = cachedDept.departmentId || cachedDept.id;
+              console.log('ExamPage - Resolved slug to deptId from cache:', deptSlugFromUrl, '->', foundDepartmentId);
+            } else {
+              // Not in cache, fetch departments to resolve slug
+              console.log('ExamPage - Slug not in cache, fetching departments to resolve');
+              const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
               
-              const dept = departments.find((d: any) => 
-                d.slug === deptSlugFromUrl || 
-                d.id === deptSlugFromUrl ||
-                d.departmentId === deptSlugFromUrl
-              );
-              
-              if (dept) {
-                foundDepartmentId = dept.departmentId || dept.id;
-                console.log('ExamPage - Resolved slug to deptId from API:', deptSlugFromUrl, '->', foundDepartmentId);
+              if (deptsResponse.ok) {
+                const deptsData = await deptsResponse.json();
+                const departments = deptsData.data?.departments || [];
+                
+                // Cache for future use
+                const metadata = deptsData.data?.metadata || {};
+                departmentCache.set({
+                  departments,
+                  metadata: {
+                    generalDeptId: metadata.general?.departmentId,
+                    ...metadata
+                  }
+                });
+                
+                const dept = departments.find((d: any) => 
+                  d.slug === deptSlugFromUrl || 
+                  d.id === deptSlugFromUrl ||
+                  d.departmentId === deptSlugFromUrl
+                );
+                
+                if (dept) {
+                  foundDepartmentId = dept.departmentId || dept.id;
+                  console.log('ExamPage - Resolved slug to deptId from API:', deptSlugFromUrl, '->', foundDepartmentId);
+                }
               }
             }
           }
@@ -217,10 +251,49 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           throw new Error('Exam paper not found');
         }
         
+        // Check if this is a general paper and use generalDeptId from cache if so
+        const isGeneralPaper = foundPaper.department?.toLowerCase() === 'general';
+        let finalDepartmentId = foundDepartmentId;
+        
+        if (isGeneralPaper) {
+          const generalDeptId = departmentCache.getGeneralDeptId();
+          if (generalDeptId) {
+            console.log('ExamPage - General paper detected, using generalDeptId from cache:', generalDeptId);
+            finalDepartmentId = generalDeptId;
+          } else {
+            console.warn('ExamPage - General paper detected but no generalDeptId in cache, fetching departments');
+            // Fetch departments to get generalDeptId
+            try {
+              const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
+              if (deptsResponse.ok) {
+                const deptsData = await deptsResponse.json();
+                const metadata = deptsData.data?.metadata || {};
+                const fetchedGeneralDeptId = metadata.general?.departmentId;
+                
+                if (fetchedGeneralDeptId) {
+                  finalDepartmentId = fetchedGeneralDeptId;
+                  console.log('ExamPage - Fetched generalDeptId from API:', fetchedGeneralDeptId);
+                  
+                  // Update cache
+                  departmentCache.set({
+                    departments: deptsData.data?.departments || [],
+                    metadata: {
+                      generalDeptId: fetchedGeneralDeptId,
+                      ...metadata
+                    }
+                  });
+                }
+              }
+            } catch (err) {
+              console.error('ExamPage - Failed to fetch generalDeptId:', err);
+            }
+          }
+        }
+        
         // Set exam data
         const examData: Exam = {
           id: foundPaper.paperId || foundPaper._id,
-          departmentId: foundDepartmentId,
+          departmentId: finalDepartmentId,
           paperId: foundPaper.paperId || foundPaper._id,
           name: foundPaper.name,
           description: foundPaper.description,
@@ -235,8 +308,8 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         setExam(examData);
         setTimeRemaining(examData.duration * 60);
         
-        // Start prefetching questions
-        prefetchQuestions(foundDepartmentId, foundPaper.paperId || foundPaper._id);
+        // Start prefetching questions (use finalDepartmentId for general papers)
+        prefetchQuestions(finalDepartmentId, foundPaper.paperId || foundPaper._id);
         
       } catch (err) {
         const error = err as Error;
