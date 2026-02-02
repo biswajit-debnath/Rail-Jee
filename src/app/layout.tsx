@@ -17,6 +17,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Preload critical animation file */}
+        <link
+          rel="preload"
+          href="/animation/Train Animation.lottie/a/Main Scene.json"
+          as="fetch"
+          crossOrigin="anonymous"
+        />
+        {/* Optimize font loading */}
         <link
           href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&display=swap"
           rel="stylesheet"

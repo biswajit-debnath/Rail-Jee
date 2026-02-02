@@ -1,60 +1,100 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_ENDPOINTS } from '@/lib/apiConfig';
+import { departmentCache } from '@/lib/departmentCache';
 
-export default function DepartmentShowcase() {
+interface Department {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
+interface DepartmentShowcaseProps {
+  dataReady?: boolean;
+}
+
+// Icon mapping for departments
+const iconMapping: { [key: string]: string } = {
+  building: '🏗️',
+  wrench: '⚙️',
+  bolt: '⚡',
+  currency: '💼',
+  users: '👥',
+  train: '🚂',
+  signal: '📡',
+  metro: '🚇'
+};
+
+export default function DepartmentShowcase({ dataReady = false }: DepartmentShowcaseProps) {
   const router = useRouter();
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(!dataReady);
 
-  const departments = [
-    {
-      id: 'civil',
-      name: 'Civil Engineering',
-      icon: '🏗️',
-      description: 'Infrastructure & Construction'
-    },
-    {
-      id: 'mechanical',
-      name: 'Mechanical',
-      icon: '⚙️',
-      description: 'Locomotives & Maintenance'
-    },
-    {
-      id: 'electrical',
-      name: 'Electrical',
-      icon: '⚡',
-      description: 'Power & Traction'
-    },
-    {
-      id: 'commercial',
-      name: 'Commercial',
-      icon: '💼',
-      description: 'Ticketing & Services'
-    },
-    {
-      id: 'personnel',
-      name: 'Personnel',
-      icon: '👥',
-      description: 'HR & Management'
-    },
-    {
-      id: 'operating',
-      name: 'Operating',
-      icon: '🚂',
-      description: 'Train Operations'
-    },
-    {
-      id: 'snt',
-      name: 'S&T',
-      icon: '📡',
-      description: 'Signal & Telecom'
-    },
-    {
-      id: 'metro',
-      name: 'DFCCIL & Metro',
-      icon: '🚇',
-      description: 'Freight & Metro'
-    }
-  ];
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        // Check cache (should be populated by home page)
+        const cached = departmentCache.get();
+        if (cached?.departments) {
+          // Map cached data to display format
+          const mappedDepts = cached.departments.map((dept: any) => ({
+            id: dept.slug || dept.departmentId || dept.id,
+            name: dept.name || dept.fullName,
+            icon: iconMapping[dept.icon] || '📚',
+            description: dept.description || 'Department'
+          }));
+          setDepartments(mappedDepts);
+          setIsLoading(false);
+          return;
+        }
+
+        // If dataReady is true but no cache, wait a bit (race condition)
+        if (dataReady) {
+          setTimeout(fetchDepartments, 100);
+          return;
+        }
+
+        // Fetch from API if no cache
+        const response = await fetch(API_ENDPOINTS.DEPARTMENTS);
+        if (!response.ok) {
+          throw new Error('Failed to fetch departments');
+        }
+
+        const apiData = await response.json();
+        const departmentsData = apiData.data?.departments || [];
+        const metadata = apiData.data?.metadata || {};
+
+        // Cache the data
+        departmentCache.set({
+          departments: departmentsData,
+          metadata: {
+            generalDeptId: metadata.general?.departmentId,
+            ...metadata
+          }
+        });
+
+        // Map to display format
+        const mappedDepts = departmentsData.map((dept: any) => ({
+          id: dept.slug || dept.departmentId || dept.id,
+          name: dept.name || dept.fullName,
+          icon: iconMapping[dept.icon] || '📚',
+          description: dept.description || 'Department'
+        }));
+
+        setDepartments(mappedDepts);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        // Fallback to empty array on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, [dataReady]);
 
   return (
     <section className="py-12 sm:py-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
@@ -71,7 +111,20 @@ export default function DepartmentShowcase() {
 
         {/* Departments Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8 sm:mb-12">
-          {departments.map((dept, index) => (
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-stone-100 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 animate-pulse"
+              >
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-stone-200 rounded mb-2 sm:mb-3"></div>
+                <div className="h-4 bg-stone-200 rounded mb-2 w-3/4"></div>
+                <div className="h-3 bg-stone-200 rounded w-full"></div>
+              </div>
+            ))
+          ) : (
+            departments.map((dept, index) => (
             <button
               key={dept.id}
               onClick={() => router.push(`/departments/${dept.id}`)}
@@ -93,7 +146,8 @@ export default function DepartmentShowcase() {
                 </svg>
               </div>
             </button>
-          ))}
+          ))
+          )}
         </div>
 
         {/* CTA */}

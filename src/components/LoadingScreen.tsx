@@ -11,13 +11,15 @@ interface LoadingScreenProps {
 export default function LoadingScreen({ isLoading, message = 'Loading...' }: LoadingScreenProps) {
   const [animationData, setAnimationData] = useState(null);
   const [animationLoaded, setAnimationLoaded] = useState(false);
-  const [minDisplayTimeReached, setMinDisplayTimeReached] = useState(false);
 
   useEffect(() => {
-    // Prioritize loading the animation file first
+    // Load animation immediately when component mounts
     const loadAnimation = async () => {
       try {
-        const response = await fetch('/animation/Train Animation.lottie/a/Main Scene.json');
+        // Use preloaded resource (will be in cache if preload worked)
+        const response = await fetch('/animation/Train Animation.lottie/a/Main Scene.json', {
+          cache: 'force-cache'
+        });
         const data = await response.json();
         setAnimationData(data);
         setAnimationLoaded(true);
@@ -27,23 +29,13 @@ export default function LoadingScreen({ isLoading, message = 'Loading...' }: Loa
       }
     };
 
-    if (isLoading) {
-      setMinDisplayTimeReached(false);
-      loadAnimation();
-      
-      // Set a 5 second minimum display time for the animation
-      const timer = setTimeout(() => {
-        setMinDisplayTimeReached(true);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
+    loadAnimation();
+  }, []);
 
-  if (!isLoading && minDisplayTimeReached) return null;
+  if (!isLoading) return null;
 
   return (
-    <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-white flex items-center justify-center z-[9999]">
       <div className="w-80 h-80 sm:w-96 sm:h-96">
         {animationLoaded && animationData ? (
           <Lottie
@@ -53,8 +45,12 @@ export default function LoadingScreen({ isLoading, message = 'Loading...' }: Loa
             style={{ width: '100%', height: '100%' }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+            </div>
+            <p className="text-stone-600 text-sm font-medium">{message}</p>
           </div>
         )}
       </div>

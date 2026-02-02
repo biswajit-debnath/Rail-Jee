@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Navbar from '@/components/home/Navbar';
 import Hero from '@/components/home/Hero';
 import DepartmentShowcase from '@/components/home/DepartmentShowcase';
@@ -6,14 +9,85 @@ import Features from '@/components/home/Features';
 import HowItWorks from '@/components/home/HowItWorks';
 import Testimonials from '@/components/home/Testimonials';
 import Footer from '@/components/home/Footer';
+import LoadingScreen from '@/components/LoadingScreen';
+import { API_ENDPOINTS } from '@/lib/apiConfig';
+import { departmentCache } from '@/lib/departmentCache';
+import { getTopPapers } from '@/lib/api';
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [dataReady, setDataReady] = useState({
+    departments: false,
+    topPapers: false
+  });
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        // Call both APIs in parallel
+        const [departmentsResponse, topPapersResponse] = await Promise.all([
+          // Fetch departments
+          fetch(API_ENDPOINTS.DEPARTMENTS)
+            .then(res => res.ok ? res.json() : Promise.reject('Departments fetch failed'))
+            .then(apiData => {
+              const departments = apiData.data?.departments || [];
+              const metadata = apiData.data?.metadata || {};
+              
+              // Cache for other pages
+              departmentCache.set({
+                departments,
+                metadata: {
+                  generalDeptId: metadata.general?.departmentId,
+                  ...metadata
+                }
+              });
+              
+              return { success: true, data: departments };
+            })
+            .catch(error => {
+              console.error('Departments fetch error:', error);
+              return { success: false, data: [] };
+            }),
+          
+          // Fetch top papers
+          getTopPapers(6)
+            .then(papers => ({ success: true, data: papers }))
+            .catch(error => {
+              console.error('Top papers fetch error:', error);
+              return { success: false, data: [] };
+            })
+        ]);
+
+        // Mark both as ready
+        setDataReady({
+          departments: true,
+          topPapers: true
+        });
+
+        // Small delay to ensure smooth transition
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 2000);
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+        // Even on error, stop loading to show the page
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  if (isLoading) {
+    return <LoadingScreen isLoading={isLoading} message="Loading Rail-Jee..." />;
+  }
+
   return (
     <main className="min-h-screen bg-white">
       <Navbar />
       <Hero />
-      <DepartmentShowcase />
-      <ExamCards />
+      <DepartmentShowcase dataReady={dataReady.departments} />
+      <ExamCards dataReady={dataReady.topPapers} />
       <Features />
       <HowItWorks />
       <Testimonials />

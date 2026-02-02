@@ -9,5 +9,5 @@ export { generateStaticParams } from './generateStaticParams';
 
 export default async function DepartmentDetailPage({ params }: PageProps) {
   const { deptId } = await params;
-  return <DepartmentDetailClient deptId={deptId} />;
+  return <DepartmentDetailClient slug={deptId} />;
 }

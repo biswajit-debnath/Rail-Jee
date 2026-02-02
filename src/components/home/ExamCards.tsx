@@ -38,7 +38,11 @@ const examIcons: { [key: string]: React.ReactNode } = {
   )
 };
 
-export default function ExamCards() {
+interface ExamCardsProps {
+  dataReady?: boolean;
+}
+
+export default function ExamCards({ dataReady = false }: ExamCardsProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
@@ -48,21 +52,27 @@ export default function ExamCards() {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Fetch top papers on mount
+  // Fetch top papers on mount (only if not already loaded by home page)
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const papers = await getTopPapers();
-        setTopExams(papers);
-      } catch (error) {
-        console.error('Failed to load top papers:', error);
-      } finally {
+      // If dataReady is true, data should be loading/loaded by parent
+      if (!dataReady) {
+        try {
+          const papers = await getTopPapers();
+          setTopExams(papers);
+        } catch (error) {
+          console.error('Failed to load top papers:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Data is being handled by parent, just wait
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [dataReady]);
 
   // Detect screen size for mobile
   useEffect(() => {
@@ -80,8 +90,12 @@ export default function ExamCards() {
   const visibleCards = isMobile ? 1 : 3;
   const maxIndex = totalSlides - visibleCards;
 
-  const handleStartExam = (examId: string) => {
-    router.push(`/exam/${examId}`);
+  const handleStartExam = (examId: string, departmentSlug?: string) => {
+    if (departmentSlug) {
+      router.push(`/exam/${examId}?dept=${departmentSlug}`);
+    } else {
+      router.push(`/exam/${examId}`);
+    }
   };
 
   const nextSlide = useCallback(() => {
@@ -252,7 +266,7 @@ export default function ExamCards() {
                     </div>
                     
                     <button
-                      onClick={() => handleStartExam(exam._id)}
+                      onClick={() => handleStartExam(exam._id, exam.department)}
                       className="w-full px-4 sm:px-5 py-2.5 sm:py-3 rounded-full border-2 border-stone-900 text-stone-900 font-semibold text-xs sm:text-sm hover:bg-stone-900 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 group/btn"
                     >
                       Start Practice
