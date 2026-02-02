@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
+import { departmentCache } from '@/lib/departmentCache';
 import { ExamPaper, Material, DepartmentInfo, DepartmentData } from '@/lib/types';
 import LoadingState from './common/LoadingState';
 import ErrorScreen from './common/ErrorScreen';
@@ -15,10 +16,10 @@ import MaterialCard from './department/MaterialCard';
 import MaterialViewer from './department/MaterialViewer';
 
 interface DepartmentDetailClientProps {
-  deptId: string;
+  slug: string;
 }
 
-export default function DepartmentDetailClient({ deptId }: DepartmentDetailClientProps) {
+export default function DepartmentDetailClient({ slug }: DepartmentDetailClientProps) {
   const router = useRouter();
 
   const [selectedExamType, setSelectedExamType] = useState<string>('All');
@@ -35,51 +36,119 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
   const [departmentData, setDepartmentData] = useState<DepartmentData | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPapers, setLoadingPapers] = useState(false);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [materialsLoaded, setMaterialsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [externalDeptId, setExternalDeptId] = useState<string>('');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [generalDeptId, setGeneralDeptId] = useState<string>('');
 
   // Fetch department data from API
   useEffect(() => {
     const fetchDepartmentData = async () => {
       try {
-        setLoading(true);
+        // Use different loading states for initial vs filter changes
+        if (isInitialLoad) {
+          setLoading(true);
+        } else {
+          setLoadingPapers(true);
+          // Clear current papers when filter changes
+          if (departmentData) {
+            setDepartmentData({
+              ...departmentData,
+              papers: []
+            });
+          }
+        }
         setError(null);
         
-        // Fetch all departments from external API
-        const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
+        // Determine the department ID to use
+        let apiDeptId = externalDeptId;
+        let currentDept: any = null;
         
-        if (!deptsResponse.ok) {
-          throw new Error(`Failed to fetch departments: ${deptsResponse.statusText}`);
+        // Try to get department from cache first
+        if (!apiDeptId) {
+          const cachedDept = departmentCache.findDepartment(slug);
+          
+          if (cachedDept) {
+            // Found in cache, use it
+            apiDeptId = cachedDept.departmentId || cachedDept.id;
+            currentDept = cachedDept;
+            setExternalDeptId(apiDeptId);
+            
+            // Also get generalDeptId from cache
+            const cachedGeneralDeptId = departmentCache.getGeneralDeptId();
+            if (cachedGeneralDeptId && isInitialLoad) {
+              setGeneralDeptId(cachedGeneralDeptId);
+            }
+          } else {
+            // Not in cache, fetch from API
+            const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
+            
+            if (!deptsResponse.ok) {
+              throw new Error(`Failed to fetch departments: ${deptsResponse.statusText}`);
+            }
+            
+            const deptsData = await deptsResponse.json();
+            const departments = deptsData.data?.departments || [];
+            const metadata = deptsData.data?.metadata || {};
+            
+            // Cache the data for future use
+            departmentCache.set({
+              departments,
+              metadata: {
+                generalDeptId: metadata.general?.departmentId,
+                ...metadata
+              }
+            });
+            
+            // Find the matching department by slug
+            currentDept = departments.find((dept: any) => 
+              dept.slug === slug || 
+              dept.id === slug ||
+              dept.departmentId === slug
+            );
+            
+            if (!currentDept) {
+              throw new Error('Department not found');
+            }
+            
+            apiDeptId = currentDept.departmentId || currentDept.id;
+            setExternalDeptId(apiDeptId);
+            
+            // Store generalDeptId
+            if (metadata.general?.departmentId && isInitialLoad) {
+              setGeneralDeptId(metadata.general.departmentId);
+            }
+          }
         }
         
-        const deptsData = await deptsResponse.json();
+        // Build API URL with paperCode parameter if filter is selected
+        // Use generalDeptId for subject filters, otherwise use current department ID
+        const deptIdForApi = (selectedSubject !== 'All' && generalDeptId) ? generalDeptId : apiDeptId;
+        let papersUrl = API_ENDPOINTS.PAPERS(deptIdForApi);
         
-        // Map external API response to get departments array
-        const departments = Array.isArray(deptsData) ? deptsData : deptsData.data || deptsData.departments || [];
-        
-        // Find the matching department by slug/id
-        const currentDept = departments.find((dept: any) => 
-          dept.slug === deptId || 
-          dept.id === deptId ||
-          dept.departmentId === deptId
-        );
-        
-        if (!currentDept) {
-          throw new Error('Department not found');
+        if (selectedExamType !== 'All') {
+          papersUrl += `?paperCode=${selectedExamType}`;
+        } else if (selectedSubject !== 'All') {
+          papersUrl += `?paperCode=${selectedSubject}`;
         }
-        
-        // Get the external API department ID from the state
-        const externalDeptId = currentDept.departmentId || currentDept.id;
         
         // Fetch papers from external API
-        const papersResponse = await fetch(API_ENDPOINTS.PAPERS(externalDeptId));
+        const papersResponse = await fetch(papersUrl);
         
         if (!papersResponse.ok) {
           throw new Error(`Failed to fetch papers: ${papersResponse.statusText}`);
         }
         
         const papersData = await papersResponse.json();
+        
+        // Extract filters from metadata
+        const metadata = papersData.data?.metadata || {};
+        const paperCodes = metadata.paperCodes || { general: [], nonGeneral: [] };
+        const generalFilters = paperCodes.general || [];
+        const mainFilters = paperCodes.nonGeneral || [];
         
         // Transform external API papers to match our interface
         const transformedPapers: ExamPaper[] = papersData.data?.papers?.map((paper: any) => ({
@@ -105,27 +174,24 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
           negativeMarking: paper.negativeMarking
         })) || [];
         
-        // Extract unique exam types from papers
-        const examTypes = [...new Set(transformedPapers.map(p => p.examType || p.name).filter(Boolean))] as string[];
-        
         // Map department data
         const departmentInfo: DepartmentInfo = {
-          id: deptId,
-          name: currentDept.name || currentDept.departmentName,
-          fullName: currentDept.fullName || currentDept.name || currentDept.departmentName,
-          color: currentDept.color || {
+          id: slug,
+          name: currentDept?.name || currentDept?.departmentName || 'Department',
+          fullName: currentDept?.fullName || currentDept?.name || currentDept?.departmentName || 'Department',
+          color: currentDept?.color || {
             gradient: 'from-orange-600 to-red-700',
             bg: 'bg-orange-50'
           },
-          departmentId: externalDeptId
+          departmentId: apiDeptId
         };
         
         setDepartmentData({
           department: departmentInfo,
           papers: transformedPapers,
           filters: {
-            examTypes: examTypes.length > 0 ? examTypes : [],
-            subjects: []
+            examTypes: mainFilters.length > 0 ? mainFilters : [],
+            subjects: generalFilters.length > 0 ? generalFilters : []
           }
         });
         
@@ -139,11 +205,13 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
         console.error('Error fetching department data:', err);
       } finally {
         setLoading(false);
+        setLoadingPapers(false);
+        setIsInitialLoad(false);
       }
     };
 
     fetchDepartmentData();
-  }, [deptId]);
+  }, [slug, selectedExamType, selectedSubject]);
 
   // Fetch materials data (lazy loaded)
   const fetchMaterials = async () => {
@@ -152,7 +220,7 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
     try {
       setLoadingMaterials(true);
       
-      const response = await fetch(`/api/departments/${deptId}/materials`);
+      const response = await fetch(`/api/departments/${slug}/materials`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch materials: ${response.statusText}`);
@@ -177,18 +245,20 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
   const availableExamTypes = departmentData?.filters.examTypes || [];
   const availableSubjects = departmentData?.filters.subjects || [];
 
-  // Define main exam types to show as buttons
-  const mainExamTypes = ['RRB JE CBT-1', 'RRB NTPC CBT-1', 'RRB ALP CBT-1'];
+  // Define main exam types to show as buttons (first 2 from nonGeneral)
+  const mainExamTypes = useMemo(() => {
+    return availableExamTypes.slice(0, 2);
+  }, [availableExamTypes]);
 
   // Get all unique exam types
   const allExamTypes = useMemo(() => {
     return availableExamTypes;
   }, [availableExamTypes]);
 
-  // Get other exam types (not in main filters)
+  // Get other exam types (remaining items after first 2, shown in dropdown)
   const otherExamTypes = useMemo(() => {
-    return allExamTypes.filter(type => !mainExamTypes.includes(type));
-  }, [allExamTypes, mainExamTypes]);
+    return availableExamTypes.slice(2);
+  }, [availableExamTypes]);
 
   // Get all unique subjects
   const allSubjects = useMemo(() => {
@@ -196,14 +266,8 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
   }, [availableSubjects]);
 
   const filteredPapers = useMemo(() => {
-    const filtered = papers.filter(paper => {
-      const matchType = selectedExamType === 'All' || paper.name === selectedExamType || paper.examType === selectedExamType;
-      const matchSubject = selectedSubject === 'All' || (paper.subjects && paper.subjects.includes(selectedSubject));
-      return matchType && matchSubject;
-    });
-
-    // Sort papers
-    return [...filtered].sort((a, b) => {
+    // Papers are already filtered by API, just apply sorting
+    return [...papers].sort((a, b) => {
       if (sortBy === 'name') {
         return a.name.localeCompare(b.name);
       } else {
@@ -215,7 +279,7 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
         return b.shift.localeCompare(a.shift);
       }
     });
-  }, [papers, selectedExamType, selectedSubject, sortBy]);
+  }, [papers, sortBy]);
 
   const materialTypeOptions = useMemo(() => {
     const types = [...new Set(materials.map(m => m.type))];
@@ -246,9 +310,8 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
   }
 
   const handlePaperSelect = (paper: ExamPaper) => {
-    // Navigate with departmentId to avoid searching through all departments
-    const deptIdParam = departmentData?.department.departmentId || deptId;
-    router.push(`/exam/${paper.examId}?dept=${deptIdParam}`);
+    // Navigate with slug instead of departmentId
+    router.push(`/exam/${paper.examId}?dept=${slug}`);
   };
 
   const handleTabChange = (tab: 'papers' | 'materials') => {
@@ -325,10 +388,22 @@ export default function DepartmentDetailClient({ deptId }: DepartmentDetailClien
       />
 
       {/* Papers/Materials List */}
-      <main className="px-3 sm:px-4 lg:px-8 pb-8 sm:pb-10 lg:pb-12">
+      <main className="px-3 sm:px-4 lg:px-8 pb-8 sm:pb-10 lg:pb-12 relative">
         <div className="max-w-7xl mx-auto">
           {activeTab === 'papers' ? (
             <>
+              {/* Loading Overlay */}
+              {loadingPapers && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+                  <div className="flex flex-col items-center gap-3">
+                    <svg className="animate-spin h-10 w-10 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-stone-700 font-medium">Loading papers...</span>
+                  </div>
+                </div>
+              )}
               {/* Results Count */}
               <div className="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
                 <p className="text-stone-600 text-sm sm:text-base">

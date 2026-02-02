@@ -3,8 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Lottie from 'lottie-react';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
+import { departmentCache } from '@/lib/departmentCache';
 import LoadingScreen from '@/components/LoadingScreen';
+import departmentAnimation from '../../../public/animation/departmentList_animation/a/Main Scene.json';
 
 interface Department {
   id: string;
@@ -106,10 +109,32 @@ export default function DepartmentsPage() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
+        // Check cache first (pre-fetched from home page)
+        const cached = departmentCache.get();
+        
+        if (cached?.departments && cached.departments.length > 0) {
+          const departmentsWithIcons: Department[] = cached.departments.map((dept: any) => ({
+            id: dept.slug || dept.departmentId || dept.id,
+            name: dept.name || dept.fullName || 'Department',
+            fullName: dept.fullName || dept.name || 'Department',
+            description: dept.description || 'Department description',
+            icon: getIconComponent(dept.icon || 'building'),
+            color: colorMapping[dept.icon] || colorMapping.building,
+            paperCount: dept.paperCount || 0,
+            materialCount: dept.materialCount || 0,
+            departmentId: dept.departmentId
+          }));
+          
+          setDepartments(departmentsWithIcons);
+          setLoading(false); // Immediately stop loading when using cache
+          return; // Exit early, no need to fetch
+        }
+        
+        // Only show loading screen if we need to fetch from API (cache miss)
         setLoading(true);
         setError(null);
         
-        // Fetch directly from external API
+        // Fetch from API if cache is empty (direct navigation)
         const response = await fetch(API_ENDPOINTS.DEPARTMENTS);
         
         if (!response.ok) {
@@ -119,7 +144,18 @@ export default function DepartmentsPage() {
         const apiData = await response.json();
         
         // Map external API response to our format
-        const departments = Array.isArray(apiData) ? apiData : apiData.data || apiData.departments || [];
+        // New API structure: data contains departments array
+        const departments = apiData.data?.departments || [];
+        const metadata = apiData.data?.metadata || {};
+
+        // Cache the departments data for detail page
+        departmentCache.set({
+          departments,
+          metadata: {
+            generalDeptId: metadata.general?.departmentId,
+            ...metadata
+          }
+        });
         
         const departmentsWithIcons: Department[] = departments.map((dept: any) => ({
           id: dept.slug || dept.departmentId || dept.id,
@@ -130,7 +166,7 @@ export default function DepartmentsPage() {
           color: colorMapping[dept.icon] || colorMapping.building,
           paperCount: dept.paperCount || 0,
           materialCount: dept.materialCount || 0,
-          departmentId: dept.departmentId 
+          departmentId: dept.departmentId
         }));
         
         setDepartments(departmentsWithIcons);
@@ -204,9 +240,9 @@ export default function DepartmentsPage() {
         }
       `}</style>
       
-      <div className="min-h-screen bg-[#faf9f7]">
+      <div className="min-h-screen bg-[#FDF6E3]">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <header className="bg-[#FDF6E3]/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EDE4D3]">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
             <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
@@ -267,7 +303,7 @@ export default function DepartmentsPage() {
               onClick={() => handleDepartmentClick(dept.id)}
               onMouseEnter={() => setHoveredDept(dept.id)}
               onMouseLeave={() => setHoveredDept(null)}
-              className={`bounce-card group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 text-left transition-all duration-300 transform ${
+              className={`z-[1000] bounce-card group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 text-left transition-all duration-300 transform ${
                 selectedDept === dept.id 
                   ? 'scale-95 opacity-50' 
                   : 'hover:scale-[1.02] hover:shadow-2xl'
@@ -329,13 +365,12 @@ export default function DepartmentsPage() {
         {/* Bottom Info */}
 
         {/* Decorative Track */}
-        <div className="mt-6 sm:mt-8 lg:mt-10 relative h-16 sm:h-40 overflow-hidden rounded-xl">
-          <img
-            src="/images/railway_track.png"
-            alt="Railway Track"
-            className="w-full h-full object-cover opacity-80"
+        <div className="mt-[-60px] relative left-1/2 right-1/2 -ml-[75vw] -mr-[75vw] w-[150vw] h-16 sm:h-80 overflow-hidden">
+          <Lottie
+            animationData={departmentAnimation}
+            loop={true}
+            className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-orange-500/10 to-transparent"></div>
         </div>
       </main>
     </div>
