@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
 import { Question, Exam } from '@/lib/types';
 import { saveExamAttempt, getExamAttemptCount, getBestScore } from '@/lib/examStorage';
+import { departmentCache } from '@/lib/departmentCache';
 import LoadingState from './common/LoadingState';
 import ErrorScreen from './common/ErrorScreen';
 import ExamInstructions from './exam/ExamInstructions';
@@ -19,7 +20,7 @@ interface ExamPageClientProps {
 
 export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const searchParams = useSearchParams();
-  const deptIdFromUrl = searchParams.get('dept');
+  const deptSlugFromUrl = searchParams.get('dept'); // This is now a slug, not departmentId
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -39,6 +40,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const [showQuestionReview, setShowQuestionReview] = useState(false);
   const [examMode, setExamMode] = useState<'exam' | 'practice' | null>(null);
   const [lockedQuestions, setLockedQuestions] = useState<boolean[]>([]);
+  const [practiceAnswers, setPracticeAnswers] = useState<Map<number, number>>(new Map());
   
   // API state
   const [loading, setLoading] = useState(true);
@@ -102,35 +104,88 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         setError(null);
         
         let foundPaper: any = null;
-        let foundDepartmentId: string | null = deptIdFromUrl;
+        let foundDepartmentId: string | null = null;
         
-        // If departmentId is provided in URL, fetch directly
-        if (deptIdFromUrl) {
-          const papersResponse = await fetch(API_ENDPOINTS.PAPERS(deptIdFromUrl));
+        // If department slug is provided in URL, resolve it to departmentId
+        if (deptSlugFromUrl) {
+          // Try to get department from cache first
+          const cachedDept = departmentCache.findDepartment(deptSlugFromUrl);
           
-          if (papersResponse.ok) {
-            const papersData = await papersResponse.json();
-            const papers = papersData.data?.papers || [];
+          if (cachedDept) {
+            foundDepartmentId = cachedDept.departmentId || cachedDept.id;
+            console.log('ExamPage - Resolved slug to deptId from cache:', deptSlugFromUrl, '->', foundDepartmentId);
+          } else {
+            // Not in cache, fetch departments to resolve slug
+            console.log('ExamPage - Slug not in cache, fetching departments to resolve');
+            const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
             
-            foundPaper = papers.find((p: any) => 
-              p.paperId === examId || 
-              p._id === examId ||
-              p.id === examId
-            );
+            if (deptsResponse.ok) {
+              const deptsData = await deptsResponse.json();
+              const departments = deptsData.data?.departments || [];
+              
+              // Cache for future use
+              const metadata = deptsData.data?.metadata || {};
+              departmentCache.set({
+                departments,
+                metadata: {
+                  generalDeptId: metadata.general?.departmentId,
+                  ...metadata
+                }
+              });
+              
+              const dept = departments.find((d: any) => 
+                d.slug === deptSlugFromUrl || 
+                d.id === deptSlugFromUrl ||
+                d.departmentId === deptSlugFromUrl
+              );
+              
+              if (dept) {
+                foundDepartmentId = dept.departmentId || dept.id;
+                console.log('ExamPage - Resolved slug to deptId from API:', deptSlugFromUrl, '->', foundDepartmentId);
+              }
+            }
+          }
+          
+          // If we resolved the slug to departmentId, fetch papers directly
+          if (foundDepartmentId) {
+            const papersResponse = await fetch(API_ENDPOINTS.PAPERS(foundDepartmentId));
+            
+            if (papersResponse.ok) {
+              const papersData = await papersResponse.json();
+              const papers = papersData.data?.papers || [];
+              
+              foundPaper = papers.find((p: any) => 
+                p.paperId === examId || 
+                p._id === examId ||
+                p.id === examId
+              );
+            }
           }
         }
         
-        // Fallback: search through all departments (only for direct URL access/bookmarked links without ?dept parameter)
+        // Fallback: search through cached or fetch departments (only for direct URL access/bookmarked links without ?dept parameter)
         // Normal flow from department page will always have dept parameter, so this rarely executes
         if (!foundPaper) {
-          const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
+          console.log('ExamPage - No dept param, checking cache first');
           
-          if (!deptsResponse.ok) {
-            throw new Error(`Failed to fetch departments: ${deptsResponse.statusText}`);
+          // Try cache first
+          const cached = departmentCache.get();
+          let departments = cached?.departments || [];
+          
+          // Only fetch from API if cache is empty
+          if (departments.length === 0) {
+            console.log('ExamPage - Cache miss, fetching departments from API');
+            const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
+            
+            if (!deptsResponse.ok) {
+              throw new Error(`Failed to fetch departments: ${deptsResponse.statusText}`);
+            }
+            
+            const deptsData = await deptsResponse.json();
+            departments = deptsData.data?.departments || [];
+          } else {
+            console.log('ExamPage - Using cached departments, no API call');
           }
-          
-          const deptsData = await deptsResponse.json();
-          const departments = Array.isArray(deptsData) ? deptsData : deptsData.data || deptsData.departments || [];
           
           for (const dept of departments) {
             const deptId = dept.departmentId || dept.id;
@@ -194,7 +249,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
     fetchExamDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [examId, deptIdFromUrl]); // prefetchQuestions removed - it's stable and called inside fetchExamDetails
+  }, [examId, deptSlugFromUrl]); // prefetchQuestions removed - it's stable and called inside fetchExamDetails
 
   // Timer effect
   useEffect(() => {
@@ -245,6 +300,50 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const handleStartExam = async (mode: 'exam' | 'practice') => {
     setExamMode(mode);
     try {
+      // Call start exam API to track exam start
+      if (exam?.paperId && exam?.departmentId) {
+        try {
+          // TODO: Replace with actual userId once authentication is implemented
+          const userId = '60f7b3b3b3b3b3b3b3b3b3b3'; // Placeholder userId
+          
+          await fetch(API_ENDPOINTS.START_EXAM, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              paperId: exam.paperId,
+              departmentId: exam.departmentId,
+            }),
+          });
+          
+          console.log('Exam start tracked successfully');
+        } catch (err) {
+          // Non-blocking error - continue even if tracking fails
+          console.error('Error tracking exam start:', err);
+        }
+      }
+
+      // Fetch answers if practice mode
+      if (mode === 'practice' && exam?.departmentId && exam?.paperId) {
+        try {
+          const answersResponse = await fetch(API_ENDPOINTS.PAPER_ANSWERS(exam.departmentId, exam.paperId));
+          if (answersResponse.ok) {
+            const answersData = await answersResponse.json();
+            if (answersData.success && answersData.data && answersData.data.length > 0) {
+              const answersMap = new Map<number, number>();
+              answersData.data[0].answers.forEach((ans: { id: number; correct: number }) => {
+                answersMap.set(ans.id, ans.correct);
+              });
+              setPracticeAnswers(answersMap);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching practice answers:', err);
+        }
+      }
+
       // Use cached questions if available, otherwise fetch now
       if (questionsPrefetched && questionsCache.current.length > 0) {
         setQuestions(questionsCache.current);
@@ -284,6 +383,25 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           setLockedQuestions(new Array(transformedQuestions.length).fill(false));
           setHasStarted(true);
           setVisitedQuestions(new Set([0]));
+          
+          // Fetch answers if practice mode and not already fetched
+          if (mode === 'practice' && practiceAnswers.size === 0) {
+            try {
+              const answersResponse = await fetch(API_ENDPOINTS.PAPER_ANSWERS(exam.departmentId, exam.paperId));
+              if (answersResponse.ok) {
+                const answersData = await answersResponse.json();
+                if (answersData.success && answersData.data && answersData.data.length > 0) {
+                  const answersMap = new Map<number, number>();
+                  answersData.data[0].answers.forEach((ans: { id: number; correct: number }) => {
+                    answersMap.set(ans.id, ans.correct);
+                  });
+                  setPracticeAnswers(answersMap);
+                }
+              }
+            } catch (err) {
+              console.error('Error fetching practice answers:', err);
+            }
+          }
         } else {
           throw new Error('Failed to load questions');
         }
@@ -813,6 +931,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
                 showSubmitButton={true}
                 practiceMode={examMode === 'practice'}
                 isLocked={examMode === 'practice' && lockedQuestions[currentQuestionIndex]}
+                correctAnswer={examMode === 'practice' && lockedQuestions[currentQuestionIndex] ? practiceAnswers.get(currentQuestion.id) : undefined}
               />
             </div>
 

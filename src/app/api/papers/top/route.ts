@@ -55,7 +55,7 @@ const topPapers = [
 export async function GET() {
   try {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     return NextResponse.json({
       success: true,
