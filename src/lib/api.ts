@@ -1,4 +1,5 @@
 // API utilities for Rail-Jee
+import { API_ENDPOINTS } from './apiConfig';
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -33,17 +34,42 @@ async function fetchApi<T>(url: string): Promise<ApiResponse<T>> {
 // Types
 export interface TopPaper {
   _id: string;
-  name: string;
-  department: string;
   departmentId: string;
+  paperId: string;
+  paperCode: string;
+  name: string;
+  description: string;
+  year: number;
+  shift: string;
+  zones: string;
+  examType: string;
   totalQuestions: number;
   duration: number;
-  attempts: number;
-  avgScore: number;
+  passMarks: number;
+  negativeMarking: number;
+  rating: number;
+  isFree: boolean;
+  isNew: boolean;
+  paperType: string;
+  sections?: any[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // API Functions
 export async function getTopPapers(limit: number = 6): Promise<TopPaper[]> {
-  const response = await fetchApi<{ success: boolean; data: TopPaper[] }>(`/api/papers/top?limit=${limit}`);
-  return response.data?.data || [];
+  try {
+    const response = await fetch(API_ENDPOINTS.TOP_PAPERS);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    if (result.success && result.data) {
+      return result.data.slice(0, limit);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching top papers:', error);
+    return [];
+  }
 }

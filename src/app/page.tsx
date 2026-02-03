@@ -12,10 +12,11 @@ import Footer from '@/components/home/Footer';
 import LoadingScreen from '@/components/LoadingScreen';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
 import { departmentCache } from '@/lib/departmentCache';
-import { getTopPapers } from '@/lib/api';
+import { type TopPaper } from '@/lib/api';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
+  const [topPapers, setTopPapers] = useState<TopPaper[]>([]);
   const [dataReady, setDataReady] = useState({
     departments: false,
     topPapers: false
@@ -50,8 +51,13 @@ export default function Home() {
             }),
           
           // Fetch top papers
-          getTopPapers(6)
-            .then(papers => ({ success: true, data: papers }))
+          fetch(API_ENDPOINTS.TOP_PAPERS)
+            .then(res => res.ok ? res.json() : Promise.reject('Top papers fetch failed'))
+            .then(apiData => {
+              const papers = apiData.data || [];
+              setTopPapers(papers.slice(0, 6));
+              return { success: true, data: papers };
+            })
             .catch(error => {
               console.error('Top papers fetch error:', error);
               return { success: false, data: [] };
@@ -87,7 +93,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <DepartmentShowcase dataReady={dataReady.departments} />
-      <ExamCards dataReady={dataReady.topPapers} />
+      <ExamCards dataReady={dataReady.topPapers} papers={topPapers} />
       <Features />
       <HowItWorks />
       <Testimonials />
