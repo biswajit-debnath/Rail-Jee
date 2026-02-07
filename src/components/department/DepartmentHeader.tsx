@@ -8,13 +8,15 @@ interface DepartmentHeaderProps {
   subjects?: string[];
   onExamTypeSelect?: (examType: string) => void;
   onSubjectSelect?: (subject: string) => void;
+  onPreviousYearSelect?: () => void;
 }
 
 export default function DepartmentHeader({ 
   examTypes = [], 
   subjects = [], 
   onExamTypeSelect,
-  onSubjectSelect 
+  onSubjectSelect,
+  onPreviousYearSelect
 }: DepartmentHeaderProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +57,12 @@ export default function DepartmentHeader({
     setSearchQuery('');
   };
 
+  const handlePreviousYearClick = () => {
+    onPreviousYearSelect?.();
+    setShowSearch(false);
+    setSearchQuery('');
+  };
+
   const hasResults = filteredExamTypes.length > 0 || filteredSubjects.length > 0;
 
   return (
@@ -86,6 +94,30 @@ export default function DepartmentHeader({
               {/* Search Dropdown */}
               {showSearch && hasResults && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg sm:rounded-xl shadow-2xl border border-stone-200 z-50 max-h-[400px] sm:max-h-[500px] overflow-y-auto">
+                  {/* Previous Year - All Papers */}
+                  <div className="py-2 border-b border-stone-200">
+                    <button
+                      onClick={handlePreviousYearClick}
+                      className="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-orange-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-stone-900 text-sm sm:text-base">Previous Year</span>
+                            <p className="text-xxs sm:text-xs text-stone-500">View all previous year papers</p>
+                          </div>
+                        </div>
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </button>
+                  </div>
                   {/* Previous Year Filters */}
                   {filteredExamTypes.length > 0 && (
                     <div className="py-2">

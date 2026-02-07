@@ -109,7 +109,7 @@ export default function Hero() {
                     </svg>
                   </div>
                   <div>
-                    <div className="font-semibold text-stone-900 text-xxs sm:text-base">RRB Approved</div>
+                    <div className="font-semibold text-stone-900 text-xxs sm:text-base">Raiway Syllabus</div>
                     <div className="text-xxs sm:text-sm text-stone-500">Exam Pattern</div>
                   </div>
                 </div>

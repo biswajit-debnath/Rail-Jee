@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Question } from '@/lib/types';
 import { ReviewFilter, FilterCounts, QuestionReviewProps, FilteredQuestion } from '@/lib/examTypes';
 import { filterQuestions, getFilterCounts } from '@/lib/examUtils';
@@ -36,9 +37,20 @@ export default function QuestionReview({
 
   const handleJumpToQuestion = (originalIndex: number) => {
     const filteredIndex = filteredQuestions.findIndex(item => item.index === originalIndex);
+    
     if (filteredIndex !== -1) {
+      // Question exists in current filter
       setReviewQuestionIndex(filteredIndex);
+    } else {
+      // Question not in current filter, switch to "all"
+      setReviewFilter('all');
+      const allFilteredQuestions = filterQuestions(questions, answers, 'all');
+      const allFilteredIndex = allFilteredQuestions.findIndex(item => item.index === originalIndex);
+      if (allFilteredIndex !== -1) {
+        setReviewQuestionIndex(allFilteredIndex);
+      }
     }
+    
     setShowReviewPalette(false);
   };
 
@@ -151,11 +163,13 @@ function ReviewHeader({ examName, onBack, onShowPalette }: ReviewHeaderProps) {
                 <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={1.5} />
               </svg>
             </button>
-            <img
-              src="/images/logo.png"
-              alt="RailJee Logo"
-              className="h-8 sm:h-10 w-auto"
-            />
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <img
+                src="/images/logo.png"
+                alt="RailJee Logo"
+                className="h-8 sm:h-10 w-auto"
+              />
+            </Link>
           </div>
         </div>
       </div>

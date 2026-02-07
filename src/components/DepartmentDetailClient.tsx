@@ -381,6 +381,10 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
           setPaperTypeFilter('general');
           setSelectedPaperCode(subject);
         }}
+        onPreviousYearSelect={() => {
+          setPaperTypeFilter('full');
+          setSelectedPaperCode('');
+        }}
       />
 
       <DepartmentBanner
@@ -446,11 +450,11 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             <>
               {/* Loading Overlay */}
               {loadingPapers && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+                <div className="absolute inset-0 backdrop-blur-md z-10 flex items-center justify-center rounded-xl">
                   <div className="flex flex-col items-center gap-3">
                     <svg className="animate-spin h-10 w-10 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <path className="opacity-65" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span className="text-stone-700 font-medium">Loading papers...</span>
                   </div>
@@ -511,12 +515,12 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
               {/* Papers Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {filteredPapers.length === 0 ? (
-                  <div className="md:col-span-2 lg:col-span-3 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 text-center">
-                    <svg className="w-12 h-12 sm:w-16 sm:h-16 text-orange-300 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="md:col-span-2 lg:col-span-3 rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 text-center">
+                    <svg className="w-12 h-12 sm:w-16 sm:h-16 text-orange-400 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No papers found</h3>
-                    <p className="text-sm sm:text-base text-orange-200">Try adjusting your filters</p>
+                    <h3 className="text-lg sm:text-xl font-semibold text-stone-800 mb-2">No papers found</h3>
+                    <p className="text-sm sm:text-base text-stone-600">Try adjusting your filters</p>
                   </div>
                 ) : (
                   filteredPapers.map((paper, index) => (
@@ -534,11 +538,11 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             <>
               {/* Loading Overlay */}
               {loadingMaterials && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+                <div className="absolute inset-0 backdrop-blur-md z-10 flex items-center justify-center rounded-xl">
                   <div className="flex flex-col items-center gap-3">
                     <svg className="animate-spin h-10 w-10 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <path className="opacity-55" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span className="text-stone-700 font-medium">Loading materials...</span>
                   </div>
@@ -546,20 +550,20 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
               )}
               {/* Materials Results Count */}
               <div className="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
-                <p className="text-orange-200 text-sm sm:text-base">
-                  Showing <span className="font-semibold text-white text-base sm:text-lg">{filteredMaterials.length}</span> {filteredMaterials.length === 1 ? 'material' : 'materials'}
+                <p className="text-stone-600 text-sm sm:text-base">
+                  Showing <span className="font-semibold text-stone-900 text-base sm:text-lg">{filteredMaterials.length}</span> {filteredMaterials.length === 1 ? 'material' : 'materials'}
                 </p>
               </div>
 
               {/* Materials Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {filteredMaterials.length === 0 ? (
-                  <div className="md:col-span-2 lg:col-span-3 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 text-center">
-                    <svg className="w-12 h-12 sm:w-16 sm:h-16 text-orange-300 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="md:col-span-2 lg:col-span-3 rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 text-center">
+                    <svg className="w-12 h-12 sm:w-16 sm:h-16 text-orange-400 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No materials found</h3>
-                    <p className="text-sm sm:text-base text-orange-200">Try adjusting your filters</p>
+                    <h3 className="text-lg sm:text-xl font-semibold text-stone-800 mb-2">No materials found</h3>
+                    <p className="text-sm sm:text-base text-stone-600">Try adjusting your filters</p>
                   </div>
                 ) : (
                   filteredMaterials.map((material, index) => (
