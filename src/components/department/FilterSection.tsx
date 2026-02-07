@@ -2,22 +2,29 @@
 
 import { useEffect, useRef } from 'react';
 
+// Paper type filter options:
+// - 'full': Previous Year (complete papers)
+// - 'sectional': Section-wise papers by paper code
+// - 'general': General papers common across departments
+type PaperTypeFilter = 'full' | 'sectional' | 'general';
+
 interface FilterSectionProps {
   activeTab: 'papers' | 'materials';
   // Papers filters
-  selectedExamType?: string;
-  selectedSubject?: string;
+  paperTypeFilter?: PaperTypeFilter;
+  selectedPaperCode?: string;
   mainExamTypes?: string[];
   allExamTypes?: string[];
   otherExamTypes?: string[];
-  allSubjects?: string[];
+  allGeneralPapers?: string[];
   showOthersDropdown?: boolean;
-  showSubjectsDropdown?: boolean;
+  showGeneralDropdown?: boolean;
   loadingPapers?: boolean;
-  onExamTypeChange?: (type: string) => void;
-  onSubjectChange?: (subject: string) => void;
+  onFullPaperClick?: () => void;
+  onSectionalPaperSelect?: (code: string) => void;
+  onGeneralPaperSelect?: (code: string) => void;
   onToggleOthersDropdown?: () => void;
-  onToggleSubjectsDropdown?: () => void;
+  onToggleGeneralDropdown?: () => void;
   // Materials filters
   selectedMaterialType?: string;
   materialTypeOptions?: string[];
@@ -33,25 +40,26 @@ const materialTypes = {
 
 export default function FilterSection({
   activeTab,
-  selectedExamType,
-  selectedSubject,
+  paperTypeFilter = 'full',
+  selectedPaperCode = '',
   mainExamTypes = [],
   allExamTypes = [],
   otherExamTypes = [],
-  allSubjects = [],
+  allGeneralPapers = [],
   showOthersDropdown = false,
-  showSubjectsDropdown = false,
+  showGeneralDropdown = false,
   loadingPapers = false,
-  onExamTypeChange,
-  onSubjectChange,
+  onFullPaperClick,
+  onSectionalPaperSelect,
+  onGeneralPaperSelect,
   onToggleOthersDropdown,
-  onToggleSubjectsDropdown,
+  onToggleGeneralDropdown,
   selectedMaterialType,
   materialTypeOptions = [],
   onMaterialTypeChange
 }: FilterSectionProps) {
   const othersDropdownRef = useRef<HTMLDivElement>(null);
-  const subjectsDropdownRef = useRef<HTMLDivElement>(null);
+  const generalDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -61,18 +69,18 @@ export default function FilterSection({
           onToggleOthersDropdown();
         }
       }
-      if (subjectsDropdownRef.current && !subjectsDropdownRef.current.contains(event.target as Node)) {
-        if (showSubjectsDropdown && onToggleSubjectsDropdown) {
-          onToggleSubjectsDropdown();
+      if (generalDropdownRef.current && !generalDropdownRef.current.contains(event.target as Node)) {
+        if (showGeneralDropdown && onToggleGeneralDropdown) {
+          onToggleGeneralDropdown();
         }
       }
     }
 
-    if (showOthersDropdown || showSubjectsDropdown) {
+    if (showOthersDropdown || showGeneralDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showOthersDropdown, showSubjectsDropdown, onToggleOthersDropdown, onToggleSubjectsDropdown]);
+  }, [showOthersDropdown, showGeneralDropdown, onToggleOthersDropdown, onToggleGeneralDropdown]);
 
   if (activeTab === 'papers') {
     return (
@@ -90,16 +98,13 @@ export default function FilterSection({
             </div>
           )}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            {/* Full Paper Button */}
+            {/* Previous Year (Full Paper) Button */}
             <button
               onClick={() => {
-                onExamTypeChange?.('All');
-                if (showOthersDropdown && onToggleOthersDropdown) {
-                  onToggleOthersDropdown();
-                }
+                onFullPaperClick?.();
               }}
               className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xxs sm:text-xs lg:text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                selectedExamType === 'All' && selectedSubject === 'All'
+                paperTypeFilter === 'full'
                   ? 'bg-orange-500 text-white shadow-md'
                   : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
               }`}
@@ -107,7 +112,7 @@ export default function FilterSection({
               Previous Year
             </button>
 
-            {/* Main Exam Type Buttons - Show first 4 */}
+            {/* Sectional Paper Buttons - Show first 4 */}
             {mainExamTypes.slice(0, 4).map((type) => {
               const isAvailable = allExamTypes.includes(type);
               if (!isAvailable) return null;
@@ -115,13 +120,10 @@ export default function FilterSection({
                 <button
                   key={type}
                   onClick={() => {
-                    onExamTypeChange?.(type);
-                    if (showOthersDropdown && onToggleOthersDropdown) {
-                      onToggleOthersDropdown();
-                    }
+                    onSectionalPaperSelect?.(type);
                   }}
                   className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xxs sm:text-xs lg:text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                    selectedExamType === type && selectedSubject === 'All'
+                    paperTypeFilter === 'sectional' && selectedPaperCode === type
                       ? 'bg-orange-500 text-white shadow-md'
                       : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                   }`}
@@ -131,18 +133,18 @@ export default function FilterSection({
               );
             })}
 
-            {/* Others Dropdown - Contains remaining exam types */}
+            {/* Others Dropdown - Contains remaining sectional paper types */}
             {otherExamTypes.length > 0 && (
               <div className="relative" ref={othersDropdownRef}>
                 <button
                   onClick={() => {
                     onToggleOthersDropdown?.();
-                    if (showSubjectsDropdown && onToggleSubjectsDropdown) {
-                      onToggleSubjectsDropdown();
+                    if (showGeneralDropdown && onToggleGeneralDropdown) {
+                      onToggleGeneralDropdown();
                     }
                   }}
                   className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xxs sm:text-xs lg:text-sm font-medium whitespace-nowrap transition-all duration-200 flex items-center gap-1 sm:gap-1.5 ${
-                    otherExamTypes.includes(selectedExamType || '') && selectedSubject === 'All'
+                    paperTypeFilter === 'sectional' && otherExamTypes.includes(selectedPaperCode)
                       ? 'bg-orange-500 text-white shadow-md'
                       : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                   }`}
@@ -167,11 +169,11 @@ export default function FilterSection({
                       <button
                         key={type}
                         onClick={() => {
-                          onExamTypeChange?.(type);
+                          onSectionalPaperSelect?.(type);
                           onToggleOthersDropdown?.();
                         }}
                         className={`w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xxs sm:text-xs hover:bg-orange-50 transition-colors ${
-                          selectedExamType === type
+                          paperTypeFilter === 'sectional' && selectedPaperCode === type
                             ? 'bg-orange-50 text-orange-700 font-medium'
                             : 'text-stone-700'
                         }`}
@@ -184,26 +186,26 @@ export default function FilterSection({
               </div>
             )}
 
-            {/* General Subjects Dropdown - Pushed to the right */}
-            {allSubjects.length > 0 && (
-              <div className="relative ml-auto" ref={subjectsDropdownRef}>
+            {/* General Papers Dropdown - Pushed to the right */}
+            {allGeneralPapers.length > 0 && (
+              <div className="relative ml-auto" ref={generalDropdownRef}>
                 <button
                   onClick={() => {
-                    onToggleSubjectsDropdown?.();
+                    onToggleGeneralDropdown?.();
                     if (showOthersDropdown && onToggleOthersDropdown) {
                       onToggleOthersDropdown();
                     }
                   }}
                   className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xxs sm:text-xs lg:text-sm font-medium whitespace-nowrap transition-all duration-200 flex items-center gap-1 sm:gap-1.5 ${
-                    selectedSubject !== 'All'
+                    paperTypeFilter === 'general'
                       ? 'bg-orange-500 text-white shadow-md'
                       : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
                   }`}
                 >
-                  {selectedSubject === 'All' ? 'General' : selectedSubject}
+                  {paperTypeFilter === 'general' && selectedPaperCode ? selectedPaperCode : 'General'}
                   <svg
                     className={`w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform duration-200 ${
-                      showSubjectsDropdown ? 'rotate-180' : ''
+                      showGeneralDropdown ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     stroke="currentColor"
@@ -213,23 +215,23 @@ export default function FilterSection({
                   </svg>
                 </button>
 
-                {/* Subjects Dropdown Menu */}
-                {showSubjectsDropdown && (
+                {/* General Papers Dropdown Menu */}
+                {showGeneralDropdown && (
                   <div className="absolute top-full mt-1.5 right-0 bg-white rounded-lg sm:rounded-xl shadow-2xl border border-stone-200 py-1 sm:py-2 w-[140px] sm:w-[160px] lg:w-[180px] z-50 max-h-[250px] sm:max-h-[300px] overflow-y-auto">
-                    {allSubjects.map((subject) => (
+                    {allGeneralPapers.map((paper) => (
                       <button
-                        key={subject}
+                        key={paper}
                         onClick={() => {
-                          onSubjectChange?.(subject);
-                          onToggleSubjectsDropdown?.();
+                          onGeneralPaperSelect?.(paper);
+                          onToggleGeneralDropdown?.();
                         }}
                         className={`w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xxs sm:text-xs hover:bg-amber-50 transition-colors ${
-                          selectedSubject === subject
+                          paperTypeFilter === 'general' && selectedPaperCode === paper
                             ? 'bg-amber-50 text-amber-700 font-medium'
                             : 'text-stone-700'
                         }`}
                       >
-                        {subject}
+                        {paper}
                       </button>
                     ))}
                   </div>

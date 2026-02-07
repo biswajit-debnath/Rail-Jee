@@ -144,17 +144,12 @@ export default function DepartmentsPage() {
         const apiData = await response.json();
         
         // Map external API response to our format
-        // New API structure: data contains departments array
-        const departments = apiData.data?.departments || [];
-        const metadata = apiData.data?.metadata || {};
+        // New API structure: data is array of departments
+        const departments = apiData.data || [];
 
         // Cache the departments data for detail page
         departmentCache.set({
-          departments,
-          metadata: {
-            generalDeptId: metadata.general?.departmentId,
-            ...metadata
-          }
+          departments
         });
         
         const departmentsWithIcons: Department[] = departments.map((dept: any) => ({

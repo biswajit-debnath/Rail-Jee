@@ -64,16 +64,11 @@ export default function DepartmentShowcase({ dataReady = false }: DepartmentShow
         }
 
         const apiData = await response.json();
-        const departmentsData = apiData.data?.departments || [];
-        const metadata = apiData.data?.metadata || {};
+        const departmentsData = apiData.data || [];
 
         // Cache the data
         departmentCache.set({
-          departments: departmentsData,
-          metadata: {
-            generalDeptId: metadata.general?.departmentId,
-            ...metadata
-          }
+          departments: departmentsData
         });
 
         // Map to display format

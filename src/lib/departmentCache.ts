@@ -2,10 +2,7 @@
 
 interface CachedDepartmentData {
   departments: any[];
-  metadata: {
-    generalDeptId?: string;
-    [key: string]: any;
-  };
+  generalDeptId?: string;
   timestamp: number;
 }
 
@@ -16,11 +13,12 @@ export const departmentCache = {
   /**
    * Store departments data in sessionStorage
    */
-  set(data: { departments: any[]; metadata: any }): void {
+  set(data: { departments: any[]; generalDeptId?: string }): void {
     try {
+      const cached = this.get();
       const cacheData: CachedDepartmentData = {
         departments: data.departments,
-        metadata: data.metadata,
+        generalDeptId: data.generalDeptId || cached?.generalDeptId,
         timestamp: Date.now()
       };
       sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
@@ -73,7 +71,26 @@ export const departmentCache = {
    */
   getGeneralDeptId(): string | null {
     const cached = this.get();
-    return cached?.metadata?.generalDeptId || null;
+    return cached?.generalDeptId || null;
+  },
+
+  /**
+   * Set general department ID in cache
+   */
+  setGeneralDeptId(generalDeptId: string): void {
+    try {
+      const cached = this.get();
+      if (cached) {
+        const cacheData: CachedDepartmentData = {
+          ...cached,
+          generalDeptId,
+          timestamp: Date.now()
+        };
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      }
+    } catch (error) {
+      console.error('Failed to set generalDeptId:', error);
+    }
   },
 
   /**

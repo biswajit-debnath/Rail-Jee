@@ -22,13 +22,16 @@ interface DepartmentDetailClientProps {
 export default function DepartmentDetailClient({ slug }: DepartmentDetailClientProps) {
   const router = useRouter();
 
-  const [selectedExamType, setSelectedExamType] = useState<string>('All');
+  // Paper type filter: 'full' (Previous Year), 'sectional', 'general'
+  const [paperTypeFilter, setPaperTypeFilter] = useState<'full' | 'sectional' | 'general'>('full');
+  // Selected paper code for sectional or general papers (empty string means none selected)
+  const [selectedPaperCode, setSelectedPaperCode] = useState<string>('');
+  
   const [activeTab, setActiveTab] = useState<'papers' | 'materials'>('papers');
   const [selectedMaterialType, setSelectedMaterialType] = useState<string>('All');
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [showOthersDropdown, setShowOthersDropdown] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<string>('All');
-  const [showSubjectsDropdown, setShowSubjectsDropdown] = useState(false);
+  const [showGeneralDropdown, setShowGeneralDropdown] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date'>('date');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   
@@ -76,12 +79,6 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             apiDeptId = cachedDept.departmentId || cachedDept.id;
             currentDept = cachedDept;
             setExternalDeptId(apiDeptId);
-            
-            // Also get generalDeptId from cache
-            const cachedGeneralDeptId = departmentCache.getGeneralDeptId();
-            if (cachedGeneralDeptId && isInitialLoad) {
-              setGeneralDeptId(cachedGeneralDeptId);
-            }
           } else {
             // Not in cache, fetch from API
             const deptsResponse = await fetch(API_ENDPOINTS.DEPARTMENTS);
@@ -91,16 +88,11 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             }
             
             const deptsData = await deptsResponse.json();
-            const departments = deptsData.data?.departments || [];
-            const metadata = deptsData.data?.metadata || {};
+            const departments = deptsData.data || [];
             
             // Cache the data for future use
             departmentCache.set({
-              departments,
-              metadata: {
-                generalDeptId: metadata.general?.departmentId,
-                ...metadata
-              }
+              departments
             });
             
             // Find the matching department by slug
@@ -116,30 +108,25 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             
             apiDeptId = currentDept.departmentId || currentDept.id;
             setExternalDeptId(apiDeptId);
-            
-            // Store generalDeptId
-            if (metadata.general?.departmentId && isInitialLoad) {
-              setGeneralDeptId(metadata.general.departmentId);
-            }
           }
         } else {
           // If we already have the apiDeptId, still get currentDept from cache for display
           currentDept = departmentCache.findDepartment(slug);
         }
         
-        // Build API URL with paperCode parameter if filter is selected
-        // Use generalDeptId for subject filters, otherwise use current department ID
-        const deptIdForApi = (selectedSubject !== 'All' && generalDeptId) ? generalDeptId : apiDeptId;
+        // Build API URL based on paper type filter
+        // Use generalDeptId for general papers, otherwise use current department ID
+        const deptIdForApi = (paperTypeFilter === 'general' && generalDeptId) ? generalDeptId : apiDeptId;
         let papersUrl = API_ENDPOINTS.PAPERS(deptIdForApi);
         
-        if (selectedSubject !== 'All') {
-          // Subject filter: Show only "general" paperType papers
-          papersUrl += `?paperCode=${selectedSubject}&paperType=general`;
-        } else if (selectedExamType !== 'All') {
-          // Previous year filter: Show only "full" paperType papers
-          papersUrl += `?paperCode=${selectedExamType}&paperType=sectional`;
+        if (paperTypeFilter === 'general' && selectedPaperCode) {
+          // General paper: common papers across departments
+          papersUrl += `?paperCode=${selectedPaperCode}&paperType=general`;
+        } else if (paperTypeFilter === 'sectional' && selectedPaperCode) {
+          // Sectional paper: section-wise breakdown by paper code
+          papersUrl += `?paperCode=${selectedPaperCode}&paperType=sectional`;
         } else {
-          // Default (All): Show only "full" paperType papers
+          // Full paper (Previous Year): complete papers
           papersUrl += `?paperType=full`;
         }
         
@@ -157,6 +144,21 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
         const paperCodes = metadata.paperCodes || { general: [], nonGeneral: [] };
         const generalFilters = paperCodes.general || [];
         const mainFilters = paperCodes.nonGeneral || [];
+
+        const cachedGeneralDeptId = departmentCache.getGeneralDeptId();
+        
+        // If fetching general papers, store the departmentId from first general paper
+        // Check if generalDeptId already exists in cache
+        if (!cachedGeneralDeptId && paperTypeFilter === 'general' && papersData.data?.papers?.length > 0) {
+          const firstPaper = papersData.data.papers[0];
+          const generalDeptIdFromPaper = firstPaper.departmentId || firstPaper.department;
+          if (generalDeptIdFromPaper) {
+            departmentCache.setGeneralDeptId(generalDeptIdFromPaper);
+            if (!generalDeptId) {
+              setGeneralDeptId(generalDeptIdFromPaper);
+            }
+          }
+        }
         
         // Transform external API papers to match our interface
         const transformedPapers: ExamPaper[] = papersData.data?.papers?.map((paper: any) => ({
@@ -219,7 +221,7 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
     };
 
     fetchDepartmentData();
-  }, [slug, selectedExamType, selectedSubject]);
+  }, [slug, paperTypeFilter, selectedPaperCode]);
 
   // Fetch materials data (lazy loaded)
   const fetchMaterials = async () => {
@@ -318,8 +320,8 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
   }
 
   const handlePaperSelect = (paper: ExamPaper) => {
-    // Navigate with 'general' slug if general filter is active, otherwise use current department slug
-    const deptSlug = selectedSubject !== 'All' ? 'general' : slug;
+    // Navigate with 'general' slug if general paper type is active, otherwise use current department slug
+    const deptSlug = paperTypeFilter === 'general' ? 'general' : slug;
     router.push(`/exam/${paper.examId}?dept=${deptSlug}`);
   };
 
@@ -332,8 +334,8 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
 
   const handlePapersTabClick = () => {
     setActiveTab('papers');
-    setSelectedExamType('All');
-    setSelectedSubject('All');
+    setPaperTypeFilter('full');
+    setSelectedPaperCode('');
   };
 
   return (
@@ -342,12 +344,12 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
         examTypes={availableExamTypes}
         subjects={availableSubjects}
         onExamTypeSelect={(type) => {
-          setSelectedExamType(type);
-          setSelectedSubject('All');
+          setPaperTypeFilter('sectional');
+          setSelectedPaperCode(type);
         }}
         onSubjectSelect={(subject) => {
-          setSelectedSubject(subject);
-          setSelectedExamType('All');
+          setPaperTypeFilter('general');
+          setSelectedPaperCode(subject);
         }}
       />
 
@@ -372,31 +374,34 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
 
       <FilterSection
         activeTab={activeTab}
-        selectedExamType={selectedExamType}
-        selectedSubject={selectedSubject}
+        paperTypeFilter={paperTypeFilter}
+        selectedPaperCode={selectedPaperCode}
         mainExamTypes={mainExamTypes}
         allExamTypes={allExamTypes}
         otherExamTypes={otherExamTypes}
-        allSubjects={allSubjects}
+        allGeneralPapers={allSubjects}
         showOthersDropdown={showOthersDropdown}
-        showSubjectsDropdown={showSubjectsDropdown}
-        onExamTypeChange={(type) => {
-          setSelectedExamType(type);
-          setSelectedSubject('All'); // Reset subject when exam type changes
+        showGeneralDropdown={showGeneralDropdown}
+        onFullPaperClick={() => {
+          setPaperTypeFilter('full');
+          setSelectedPaperCode('');
           setShowOthersDropdown(false);
         }}
-        onSubjectChange={(subject) => {
-          setSelectedSubject(subject);
-          if (subject !== 'All') {
-            setSelectedExamType('All'); // Reset exam type when subject is selected
-          }
+        onSectionalPaperSelect={(code) => {
+          setPaperTypeFilter('sectional');
+          setSelectedPaperCode(code);
+          setShowOthersDropdown(false);
+        }}
+        onGeneralPaperSelect={(code) => {
+          setPaperTypeFilter('general');
+          setSelectedPaperCode(code);
         }}
         onToggleOthersDropdown={() => {
           setShowOthersDropdown(!showOthersDropdown);
-          setShowSubjectsDropdown(false);
+          setShowGeneralDropdown(false);
         }}
-        onToggleSubjectsDropdown={() => {
-          setShowSubjectsDropdown(!showSubjectsDropdown);
+        onToggleGeneralDropdown={() => {
+          setShowGeneralDropdown(!showGeneralDropdown);
           setShowOthersDropdown(false);
         }}
         selectedMaterialType={selectedMaterialType}

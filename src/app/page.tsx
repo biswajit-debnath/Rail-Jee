@@ -31,16 +31,11 @@ export default function Home() {
           fetch(API_ENDPOINTS.DEPARTMENTS)
             .then(res => res.ok ? res.json() : Promise.reject('Departments fetch failed'))
             .then(apiData => {
-              const departments = apiData.data?.departments || [];
-              const metadata = apiData.data?.metadata || {};
+              const departments = apiData.data || [];
               
               // Cache for other pages
               departmentCache.set({
-                departments,
-                metadata: {
-                  generalDeptId: metadata.general?.departmentId,
-                  ...metadata
-                }
+                departments
               });
               
               return { success: true, data: departments };
