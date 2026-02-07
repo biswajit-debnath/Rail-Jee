@@ -3,15 +3,17 @@ import ExamResultClient from '@/components/ExamResultClient';
 import LoadingState from '@/components/common/LoadingState';
 
 interface ExamResultPageProps {
-  params: {
+  params: Promise<{
     examId: string;
-  };
+  }>;
 }
 
-export default function ExamResultPage({ params }: ExamResultPageProps) {
+export default async function ExamResultPage({ params }: ExamResultPageProps) {
+  const { examId } = await params;
+  
   return (
     <Suspense fallback={<LoadingState message="Loading exam results..." />}>
-      <ExamResultClient examId={params.examId} />
+      <ExamResultClient examId={examId} />
     </Suspense>
   );
 }

@@ -68,7 +68,7 @@ export default function ExamInstructions({
               {exam.name}
             </h1>
             <p className="text-stone-500 text-xs sm:text-sm lg:text-base">
-              {exam.description} • {exam.studentsAttempted || (Math.random() * 20 + 5).toFixed(1)}k students took this
+              {exam.description} • {exam.studentsAttempted || 0} students took this
             </p>
           </div>
 

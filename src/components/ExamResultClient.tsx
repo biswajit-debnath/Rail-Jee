@@ -175,7 +175,7 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
   if (showQuestionReview && questions.length > 0) {
     return (
       <QuestionReview
-        examName={`Exam - ${resultData?.paperName || 'Exam'}`}
+        examName={`Paper - ${resultData?.paperName || 'Paper'}`}
         questions={questions}
         answers={getAnswersArray()}
         markedForReview={getMarkedForReview()}

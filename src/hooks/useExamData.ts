@@ -90,22 +90,30 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
     }
   }, []);
 
-  // Find paper by examId in a department
-  const findPaperInDepartment = useCallback(async (departmentId: string): Promise<any | null> => {
+  // Fetch paper details and questions together from the PAPER_QUESTIONS API
+  const fetchPaperAndQuestions = useCallback(async (departmentId: string): Promise<{ paper: any; departmentId: string } | null> => {
     try {
-      const response = await fetch(API_ENDPOINTS.PAPERS(departmentId));
+      setQuestionsLoading(true);
+      const response = await fetch(API_ENDPOINTS.PAPER_QUESTIONS(departmentId, examId));
       if (!response.ok) return null;
 
       const data = await response.json();
-      const papers = data.data?.papers || [];
-
-      return papers.find((p: any) =>
-        p.paperId === examId || p._id === examId || p.id === examId
-      ) || null;
+      if (data.success && data.data?.paperDetails) {
+        // Cache the questions while we're at it
+        if (data.data.questions) {
+          const transformed = transformQuestions(data.data.questions);
+          questionsCache.current = transformed;
+          setQuestionsPrefetched(true);
+        }
+        return { paper: data.data.paperDetails, departmentId };
+      }
+      return null;
     } catch {
       return null;
+    } finally {
+      setQuestionsLoading(false);
     }
-  }, [examId]);
+  }, [examId, transformQuestions]);
 
   // Search all departments for the paper (fallback)
   const searchAllDepartments = useCallback(async (): Promise<{ paper: any; departmentId: string } | null> => {
@@ -125,35 +133,14 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
 
     for (const dept of departments) {
       const deptId = dept.departmentId || dept.id;
-      const paper = await findPaperInDepartment(deptId);
-      if (paper) {
-        return { paper, departmentId: deptId };
+      const result = await fetchPaperAndQuestions(deptId);
+      if (result) {
+        return result;
       }
     }
 
     return null;
-  }, [findPaperInDepartment]);
-
-  // Prefetch questions
-  const prefetchQuestions = useCallback(async (departmentId: string, paperId: string) => {
-    try {
-      setQuestionsLoading(true);
-      const response = await fetch(API_ENDPOINTS.PAPER_QUESTIONS(departmentId, paperId));
-
-      if (!response.ok) throw new Error('Failed to prefetch questions');
-
-      const data = await response.json();
-      if (data.success && data.data?.questions) {
-        const transformed = transformQuestions(data.data.questions);
-        questionsCache.current = transformed;
-        setQuestionsPrefetched(true);
-      }
-    } catch (err) {
-      console.error('Error prefetching questions:', err);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  }, [transformQuestions]);
+  }, [fetchPaperAndQuestions]);
 
   // Load questions (uses cache if available)
   const loadQuestions = useCallback(async (): Promise<Question[]> => {
@@ -218,25 +205,23 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
         setLoading(true);
         setError(null);
 
-        let paper: any = null;
-        let departmentId: string | null = null;
+        let result: { paper: any; departmentId: string } | null = null;
 
-        // Try to resolve department and find paper
+        // Try to resolve department and fetch paper + questions
         if (deptSlug) {
-          departmentId = await resolveDepartmentId(deptSlug);
-          if (departmentId) {
-            paper = await findPaperInDepartment(departmentId);
+          const resolvedDeptId = await resolveDepartmentId(deptSlug);
+          if (resolvedDeptId) {
+            result = await fetchPaperAndQuestions(resolvedDeptId);
           }
         }
 
         // Fallback: search all departments
-        if (!paper) {
-          const result = await searchAllDepartments();
-          if (result) {
-            paper = result.paper;
-            departmentId = result.departmentId;
-          }
+        if (!result) {
+          result = await searchAllDepartments();
         }
+
+        const paper = result?.paper;
+        const departmentId = result?.departmentId;
 
         if (!paper || !departmentId) {
           throw new Error('Exam paper not found');
@@ -265,7 +250,7 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
           }
         }
 
-        // Create exam object
+        // Create exam object using paperDetails from the paper API
         const examData: Exam = {
           id: paper.paperId || paper._id,
           departmentId: finalDepartmentId,
@@ -277,13 +262,11 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
           passingMarks: paper.passMarks || 40,
           passingPercentage: paper.passingPercentage,
           negativeMarking: paper.negativeMarking || 0.33,
-          studentsAttempted: Math.floor(Math.random() * 5000) + 1000
+          studentsAttempted: paper.usersAttempted || Math.floor(Math.random() * 5000) + 1000
         };
 
         setExam(examData);
-        
-        // Start prefetching questions
-        prefetchQuestions(finalDepartmentId, paper.paperId || paper._id);
+        // Questions are already prefetched in fetchPaperAndQuestions
 
       } catch (err) {
         const error = err as Error;
@@ -295,7 +278,7 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
     };
 
     fetchExamDetails();
-  }, [examId, deptSlug, resolveDepartmentId, findPaperInDepartment, searchAllDepartments, prefetchQuestions]);
+  }, [examId, deptSlug, resolveDepartmentId, fetchPaperAndQuestions, searchAllDepartments]);
 
   return {
     exam,

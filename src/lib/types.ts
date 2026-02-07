@@ -29,7 +29,7 @@ export interface ExamPaper {
   shift: string;
   questions: number;
   duration: number;
-  attempts?: number;
+  usersAttempted?: number;
   rating?: number;
   isFree: boolean;
   isNew?: boolean;

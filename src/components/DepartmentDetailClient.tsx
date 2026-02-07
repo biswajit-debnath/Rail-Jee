@@ -169,7 +169,7 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
           shift: paper.shift || 'Morning',
           questions: paper.totalQuestions || paper.questions || 100,
           duration: paper.duration || 90,
-          attempts: Math.floor(Math.random() * 5000) + 1000,
+          usersAttempted: paper.usersAttempted || 0,
           rating: paper.rating || 4.0,
           isFree: paper.isFree !== undefined ? paper.isFree : false,
           isNew: paper.isNew || false,

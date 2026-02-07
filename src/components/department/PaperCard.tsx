@@ -92,7 +92,7 @@ export default function PaperCard({ paper, index, onSelect }: PaperCardProps) {
         {/* Bottom Row */}
         <div className="flex items-center justify-between">
           <span className="text-xxs sm:text-xs text-stone-400">
-            {formatAttempts(paper.attempts)} people attempted
+            {formatAttempts(paper.usersAttempted)} people attempted
           </span>
           <div className="flex items-center gap-0.5 sm:gap-1">
             <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
