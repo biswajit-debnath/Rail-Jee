@@ -64,8 +64,20 @@ export function useExamState({ totalQuestions }: UseExamStateProps): UseExamStat
       // In exam mode, allow toggling
       if (selectedAnswer === optionIndex) {
         setSelectedAnswer(null);
+        // Remove answer from answers array
+        setAnswers(prev => {
+          const newAnswers = [...prev];
+          newAnswers[currentIndex] = null;
+          return newAnswers;
+        });
       } else {
         setSelectedAnswer(optionIndex);
+        // Save answer to answers array immediately
+        setAnswers(prev => {
+          const newAnswers = [...prev];
+          newAnswers[currentIndex] = optionIndex;
+          return newAnswers;
+        });
       }
     }
   }, [currentIndex, selectedAnswer]);

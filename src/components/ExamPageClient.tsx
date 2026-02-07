@@ -192,7 +192,6 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           isFlagged: examState.markedForReview[index] || false
         }));
         
-        debugger;
         const submitResponse = await fetch(API_ENDPOINTS.SUBMIT_EXAM, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -207,7 +206,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           }),
         });
 
-        if (false && submitResponse.ok) {
+        if (submitResponse.ok) {
           const submitData = await submitResponse.json();
           if (submitData.success && submitData.data?.examId) {
             // Set flag to allow navigation without warning
