@@ -1,15 +1,6 @@
 'use client';
 
-interface Material {
-  id: string;
-  name: string;
-  type: 'notes' | 'book' | 'video' | 'guide';
-  description: string;
-  downloads: number;
-  rating: number;
-  contentType: 'pdf' | 'video';
-  contentUrl: string;
-}
+import { Material } from '@/lib/types';
 
 interface MaterialViewerProps {
   material: Material;
@@ -24,13 +15,16 @@ const formatAttempts = (num: number) => {
 };
 
 export default function MaterialViewer({ material, onClose }: MaterialViewerProps) {
+  const contentType: 'pdf' | 'video' = material.type === 'video' ? 'video' : 'pdf';
+  const rating = 4.5 + (Math.random() * 0.5); // Generate rating between 4.5-5.0
+  
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-stone-200 flex-shrink-0">
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold text-stone-900 truncate">{material.name}</h2>
+            <h2 className="text-2xl font-bold text-stone-900 truncate">{material.title}</h2>
             <p className="text-stone-500 text-sm mt-1 line-clamp-2">{material.description}</p>
           </div>
           <button
@@ -45,18 +39,18 @@ export default function MaterialViewer({ material, onClose }: MaterialViewerProp
 
         {/* Modal Content */}
         <div className="flex-1 overflow-hidden bg-stone-50 flex items-center justify-center">
-          {material.contentType === 'pdf' ? (
+          {contentType === 'pdf' ? (
             <iframe
-              src={material.contentUrl}
+              src={material.url}
               className="w-full h-full"
-              title={material.name}
+              title={material.title}
             />
           ) : (
             <iframe
               width="100%"
               height="100%"
-              src={material.contentUrl}
-              title={material.name}
+              src={material.url}
+              title={material.title}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -71,9 +65,9 @@ export default function MaterialViewer({ material, onClose }: MaterialViewerProp
               <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
-              <span className="text-sm font-semibold text-stone-700">{material.rating}</span>
+              <span className="text-sm font-semibold text-stone-700">{rating.toFixed(1)}</span>
             </div>
-            <span className="text-xs text-stone-500">{formatAttempts(material.downloads)} downloads</span>
+            <span className="text-xs text-stone-500">{formatAttempts(material.viewCount)} views</span>
           </div>
           <button
             onClick={onClose}

@@ -172,9 +172,9 @@ src/
 ```
 
 **Data fetching:**
-1. External API: `GET https://railji-business.onrender.com/departments`
-2. External API: `GET https://railji-business.onrender.com/papers?deptId={deptId}`
-3. Local API: `GET /api/departments/{deptId}/materials` (for PDF materials)
+1. External API: `GET https://railji-business.onrender.com/business/v1/departments`
+2. External API: `GET https://railji-business.onrender.com/business/v1/papers/{deptId}`
+3. External API: `GET https://railji-business.onrender.com/business/v1/departments/{deptId}/materials`
 
 ---
 
@@ -293,7 +293,7 @@ Base URL: `https://railji-business.onrender.com`
 | Endpoint | Purpose | Used By |
 |----------|---------|---------|
 | `GET /api/papers/top` | Top 6 popular papers | ExamCards (homepage) |
-| `GET /api/departments/{deptId}/materials` | Study materials (PDFs) | DepartmentDetailClient |
+
 
 ### Shared Types (`src/lib/types.ts`)
 

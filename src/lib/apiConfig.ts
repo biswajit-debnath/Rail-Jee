@@ -8,6 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://railji-bus
 export const API_ENDPOINTS = {
   DEPARTMENTS: `${API_BASE_URL}/business/v1/departments`,
   DEPARTMENT: (deptId: string) => `${API_BASE_URL}/business/v1/departments/${deptId}`,
+  MATERIALS: (deptId: string) => `${API_BASE_URL}/business/v1/departments/${deptId}/materials`,
   TOP_PAPERS: `${API_BASE_URL}/business/v1/papers/top`,
   PAPERS: (deptId: string) => `${API_BASE_URL}/business/v1/papers/${deptId}`,
   PAPER_QUESTIONS: (deptId: string, paperId: string) => `${API_BASE_URL}/business/v1/papers/${deptId}/${paperId}`,

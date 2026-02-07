@@ -168,47 +168,64 @@ GET /api/departments/civil
 
 ---
 
-### 3. GET /api/departments/:deptId/materials
+### 3. GET /business/v1/departments/:deptId/materials (External API)
 
 **Purpose**: Fetch study materials for a specific department (lazy-loaded when Materials tab is clicked)
 
+**Base URL**: `https://railji-business.onrender.com`
+
 **Request**:
 ```http
-GET /api/departments/civil/materials
+GET https://railji-business.onrender.com/business/v1/departments/DEPT001/materials
 ```
 
 **Response**:
 ```json
 {
   "success": true,
+  "statusCode": 200,
+  "message": "Materials retrieved successfully",
   "data": [
     {
-      "id": "civil-notes-1",
-      "name": "Structural Analysis Complete Notes",
-      "type": "notes",
-      "description": "Comprehensive notes covering all structural analysis concepts",
-      "downloads": 8900,
-      "rating": 4.8,
-      "isFree": true,
-      "contentType": "pdf",
-      "contentUrl": "https://example.com/sample.pdf"
+      "_id": "507f1f77bcf86cd799439011",
+      "materialId": "MAT001",
+      "title": "Physics Fundamentals - Introduction to Mechanics",
+      "description": "Comprehensive video guide covering basic mechanics concepts",
+      "type": "video",
+      "departmentId": "DEPT001",
+      "url": "https://www.youtube.com/watch?v=example",
+      "thumbnailUrl": "https://example.com/thumbnails/physics-mechanics.jpg",
+      "duration": 3600,
+      "fileSize": 524288000,
+      "isActive": true,
+      "viewCount": 245,
+      "tags": ["physics", "mechanics", "motion"],
+      "createdAt": "2024-01-10T10:30:00.000Z",
+      "updatedAt": "2024-01-10T10:30:00.000Z"
     }
-  ]
+  ],
+  "timestamp": "2026-02-07T11:32:44.454Z",
+  "path": "/business/v1/departments/DEPT001/materials"
 }
 ```
 
 **Data Fields**:
 | Field | Type | Description |
 |-------|------|-------------|
-| id | string | Unique material identifier |
-| name | string | Material name |
-| type | string | Material type (notes, book, video, guide) |
+| _id | string | MongoDB document ID |
+| materialId | string | Unique material identifier |
+| title | string | Material title |
+| type | string | Material type (video, pdf, book, guide) |
 | description | string | Material description |
-| downloads | number | Download count |
-| rating | number | Average rating (0-5) |
-| isFree | boolean | Whether the material is free |
-| contentType | string | Content type (pdf, video) |
-| contentUrl | string | URL to access the content |
+| viewCount | number | View/download count |
+| url | string | URL to access the content |
+| thumbnailUrl | string | Thumbnail image URL |
+| duration | number | Duration in seconds (video only) |
+| fileSize | number | File size in bytes |
+| isActive | boolean | Whether the material is active |
+| tags | string[] | Material tags for categorization |
+
+**Note**: Frontend transforms this data to internal format for consistency with other components.
 
 ---
 

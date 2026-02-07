@@ -90,15 +90,21 @@ export interface DepartmentData {
 
 // ============== Material Types ==============
 export interface Material {
-  id: string;
-  name: string;
-  type: 'notes' | 'book' | 'video' | 'guide';
+  _id: string;
+  materialId: string;
+  title: string;
   description: string;
-  downloads: number;
-  rating: number;
-  isFree: boolean;
-  contentType: 'pdf' | 'video';
-  contentUrl: string;
+  type: 'video' | 'pdf' | 'book' | 'guide';
+  departmentId: string;
+  url: string;
+  thumbnailUrl: string;
+  duration: number | null;
+  fileSize: number;
+  isActive: boolean;
+  viewCount: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============== API Response Types ==============

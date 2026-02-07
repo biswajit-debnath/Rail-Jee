@@ -223,14 +223,42 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
     fetchDepartmentData();
   }, [slug, paperTypeFilter, selectedPaperCode]);
 
+  // Transform external API material to internal format (direct mapping)
+  const transformMaterial = (externalMaterial: any): Material => {
+    return {
+      _id: externalMaterial._id,
+      materialId: externalMaterial.materialId,
+      title: externalMaterial.title,
+      description: externalMaterial.description,
+      type: externalMaterial.type,
+      departmentId: externalMaterial.departmentId,
+      url: externalMaterial.url,
+      thumbnailUrl: externalMaterial.thumbnailUrl,
+      duration: externalMaterial.duration,
+      fileSize: externalMaterial.fileSize,
+      isActive: externalMaterial.isActive,
+      viewCount: externalMaterial.viewCount,
+      tags: externalMaterial.tags,
+      createdAt: externalMaterial.createdAt,
+      updatedAt: externalMaterial.updatedAt
+    };
+  };
+
   // Fetch materials data (lazy loaded)
   const fetchMaterials = async () => {
     if (materialsLoaded) return; // Don't fetch if already loaded
     
+    // Wait for externalDeptId to be available
+    if (!externalDeptId) {
+      console.warn('Cannot fetch materials: externalDeptId not available yet');
+      return;
+    }
+    
     try {
       setLoadingMaterials(true);
       
-      const response = await fetch(`/api/departments/${slug}/materials`);
+      // Fetch directly from external API
+      const response = await fetch(API_ENDPOINTS.MATERIALS(externalDeptId));
       
       if (!response.ok) {
         throw new Error(`Failed to fetch materials: ${response.statusText}`);
@@ -239,7 +267,9 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
       const result = await response.json();
       
       if (result.success && result.data) {
-        setMaterials(result.data);
+        // Transform materials to internal format
+        const transformedMaterials = result.data.map(transformMaterial);
+        setMaterials(transformedMaterials);
         setMaterialsLoaded(true);
       }
     } catch (err) {
@@ -502,6 +532,18 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             </>
           ) : (
             <>
+              {/* Loading Overlay */}
+              {loadingMaterials && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+                  <div className="flex flex-col items-center gap-3">
+                    <svg className="animate-spin h-10 w-10 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-stone-700 font-medium">Loading materials...</span>
+                  </div>
+                </div>
+              )}
               {/* Materials Results Count */}
               <div className="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
                 <p className="text-orange-200 text-sm sm:text-base">
@@ -522,7 +564,7 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
                 ) : (
                   filteredMaterials.map((material, index) => (
                     <MaterialCard
-                      key={material.id}
+                      key={material.materialId}
                       material={material}
                       index={index}
                       onSelect={setSelectedMaterial}
