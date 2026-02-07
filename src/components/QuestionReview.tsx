@@ -64,8 +64,8 @@ export default function QuestionReview({
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-6">
+      <main className="flex-1 overflow-y-auto py-6">
+        <div className="max-w-2xl mx-auto px-3 sm:px-4">
           {filteredQuestions.length === 0 ? (
             <EmptyFilterMessage filter={reviewFilter} />
           ) : (
@@ -123,12 +123,12 @@ interface ReviewHeaderProps {
 function ReviewHeader({ examName, onBack, onShowPalette }: ReviewHeaderProps) {
   return (
     <div className="bg-white shadow-md sticky top-0 z-40">
-      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={onBack}
-              className="p-1.5 sm:p-2 hover:bg-stone-100 rounded-lg sm:rounded-xl transition-all"
+              className="p-1.5 hover:bg-stone-100 rounded-lg transition-all flex items-center justify-center"
             >
               <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -142,7 +142,7 @@ function ReviewHeader({ examName, onBack, onShowPalette }: ReviewHeaderProps) {
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={onShowPalette}
-              className="p-1.5 sm:p-2 hover:bg-stone-100 rounded-lg sm:rounded-xl transition-all"
+              className="p-1.5 hover:bg-stone-100 rounded-lg transition-all flex items-center justify-center"
             >
               <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={1.5} />
@@ -154,7 +154,7 @@ function ReviewHeader({ examName, onBack, onShowPalette }: ReviewHeaderProps) {
             <img
               src="/images/logo.png"
               alt="RailJee Logo"
-              className="h-10 sm:h-12 w-auto"
+              className="h-8 sm:h-10 w-auto"
             />
           </div>
         </div>

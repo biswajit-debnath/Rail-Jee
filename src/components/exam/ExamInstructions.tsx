@@ -42,10 +42,10 @@ export default function ExamInstructions({
     <div className="min-h-screen bg-[#faf9f7] flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-stone-100 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between">
           <button 
             onClick={() => router.back()}
-            className="p-1.5 sm:p-2 hover:bg-stone-100 rounded-lg sm:rounded-xl transition-colors"
+            className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors flex items-center justify-center"
           >
             <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -54,14 +54,14 @@ export default function ExamInstructions({
           <img
             src="/images/logo.png"
             alt="RailJee Logo"
-            className="h-10 sm:h-12 lg:h-14 w-auto"
+            className="h-8 sm:h-10 w-auto"
           />
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
-        <div className="max-w-5xl mx-auto">
+      <main className="flex-1 py-4 sm:py-6 lg:py-8">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4">
           {/* Exam Title Section */}
           <div className="mb-4 sm:mb-6 lg:mb-8">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-stone-900 mb-1">

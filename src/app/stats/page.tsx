@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllExamAttempts, getUserStats, getExamAttempts, ExamAttempt } from '@/lib/examStorage';
 import examData from '@/data/exams.json';
+import Navbar from '@/components/common/Navbar';
 
 // Department mapping for exams
 const departments = [
@@ -110,31 +111,13 @@ export default function StatsPage() {
   return (
     <div className="min-h-screen bg-[#faf9f7]">
       {/* Header */}
-      <header className="bg-white border-b border-stone-100 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push('/')}
-                className="p-2 hover:bg-stone-100 rounded-xl transition-colors"
-              >
-                <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div>
-                <h1 className="text-lg font-bold text-stone-900">Your Statistics</h1>
-                <p className="text-xs text-stone-500">Track your exam performance</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-stone-500 hidden sm:block">
-                {stats?.totalAttempts || 0} total attempts
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar 
+        variant="stats"
+        title="Your Statistics"
+        subtitle="Track your exam performance"
+        backHref="/"
+        statsInfo={`${stats?.totalAttempts || 0} total attempts`}
+      />
 
       {/* Department Filter - Horizontal Scroll */}
       <div className="bg-white border-b border-stone-100">

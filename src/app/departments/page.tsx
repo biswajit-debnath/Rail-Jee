@@ -7,6 +7,7 @@ import Lottie from 'lottie-react';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
 import { departmentCache } from '@/lib/departmentCache';
 import LoadingScreen from '@/components/LoadingScreen';
+import Navbar from '@/components/common/Navbar';
 import departmentAnimation from '../../../public/animation/departmentList_animation/a/Main Scene.json';
 
 interface Department {
@@ -237,30 +238,12 @@ export default function DepartmentsPage() {
       
       <div className="min-h-screen bg-[#FDF6E3]">
         {/* Header */}
-        <header className="bg-[#FDF6E3]/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EDE4D3]">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
-            <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
-              <button className="p-1.5 sm:p-2 hover:bg-stone-100 rounded-lg sm:rounded-xl transition-all">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </button>
-              <div>
-                <h1 className="text-sm sm:text-md font-bold text-stone-900">Select Department</h1>
-                <p className="text-xxs sm:text-xs text-stone-500 hidden sm:block">Choose your preparation area</p>
-              </div>
-            </Link>
-            <Link href="/" className="transition-transform hover:scale-105">
-              <img
-                src="/images/logo.png"
-                alt="RailJee Logo"
-                className="h-8 sm:h-10 lg:h-12 w-auto"
-              />
-            </Link>
-          </div>
-        </div>
-      </header>
+        <Navbar 
+          variant="departments"
+          title="Select Department"
+          subtitle="Choose your preparation area"
+          backHref="/"
+        />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
