@@ -12,7 +12,7 @@ export interface BilingualText {
 // ============== Question Types ==============
 export interface Question {
   id: number;
-  questions: BilingualText;
+  question: BilingualText;
   options: BilingualText[];
   details?: BilingualText[];
   correctAnswer?: number;
@@ -136,4 +136,18 @@ export interface QuestionsApiResponse {
   flaggedQuestions?: Array<{ id: number; count: number }>;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ============== Exam Result Types ==============
+export interface ExamResult {
+  examId: string;
+  examTitle: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  skippedQuestions: number;
+  percentage: number;
+  timeTaken: number;
+  completedAt: string;
 }

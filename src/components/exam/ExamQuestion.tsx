@@ -110,16 +110,16 @@ export default function ExamQuestion({
         <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
           {/* Question Text */}
           <div className="p-3 sm:p-4 lg:p-5 border-b border-stone-100">
-          {question.questions.en && (
+          {question.question.en && (
             <p className={`text-sm sm:text-base lg:text-lg font-semibold text-stone-800 leading-relaxed ${
-              question.questions.hi ? 'mb-2 sm:mb-3' : ''
+              question.question.hi ? 'mb-2 sm:mb-3' : ''
             }`}>
-              {question.questions.en}
+              {question.question.en}
             </p>
           )}
-          {question.questions.hi && (
+          {question.question.hi && (
             <p className="text-sm sm:text-base lg:text-lg text-stone-600 leading-relaxed rounded-lg font-hindi">
-              {question.questions.hi}
+              {question.question.hi}
             </p>
           )}
         </div>
