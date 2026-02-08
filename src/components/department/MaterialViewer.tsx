@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Material } from '@/lib/types';
 
 interface MaterialViewerProps {
@@ -17,10 +18,23 @@ const formatAttempts = (num: number) => {
 export default function MaterialViewer({ material, onClose }: MaterialViewerProps) {
   const contentType: 'pdf' | 'video' = material.type === 'video' ? 'video' : 'pdf';
   const rating = 4.5 + (Math.random() * 0.5); // Generate rating between 4.5-5.0
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Close modal when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
   
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
+      <div ref={modalRef} className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-stone-200 flex-shrink-0">
           <div className="flex-1 min-w-0">
@@ -41,7 +55,7 @@ export default function MaterialViewer({ material, onClose }: MaterialViewerProp
         <div className="flex-1 overflow-hidden bg-stone-50 flex items-center justify-center">
           {contentType === 'pdf' ? (
             <iframe
-              src={material.url}
+              src={`${material.url}#toolbar=0`}
               className="w-full h-full"
               title={material.title}
             />
