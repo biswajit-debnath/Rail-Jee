@@ -34,6 +34,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [activeExamId, setActiveExamId] = useState<string | null>(null);
   const [practiceAnswers, setPracticeAnswers] = useState<Map<number, number>>(new Map());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Refs for scroll management
   const contentContainerRef = useRef<HTMLDivElement>(null);
@@ -186,6 +187,8 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     // Submit to API
     if (exam && activeExamId) {
       try {
+        setIsSubmitting(true); // Set loading state
+        
         const responses = questions.map((question, index) => ({
           questionId: question.id,
           selectedOption: examState.answers[index] !== null ? examState.answers[index]! : -1,
@@ -222,6 +225,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         throw new Error('Failed to submit exam');
       } catch (err) {
         console.error('Error submitting exam:', err);
+        setIsSubmitting(false); // Reset loading state on error
         alert('Failed to submit exam. Please try again.');
         setShowSubmitConfirm(false);
         return;
@@ -229,6 +233,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     }
 
     // If exam or activeExamId is missing, show error
+    setIsSubmitting(false); // Reset loading state
     alert('Unable to submit exam. Please try again.');
     setShowSubmitConfirm(false);
   }
@@ -400,6 +405,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           onSubmit={handleSubmit}
           onCancel={() => setShowSubmitConfirm(false)}
           onQuestionJump={handleQuestionJump}
+          isSubmitting={isSubmitting}
         />
       )}
 

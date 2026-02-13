@@ -12,6 +12,7 @@ interface SubmitConfirmationProps {
   onSubmit: () => void;
   onCancel: () => void;
   onQuestionJump: (index: number) => void;
+  isSubmitting?: boolean;
 }
 
 export default function SubmitConfirmation({
@@ -25,7 +26,8 @@ export default function SubmitConfirmation({
   visitedQuestions,
   onSubmit,
   onCancel,
-  onQuestionJump
+  onQuestionJump,
+  isSubmitting = false
 }: SubmitConfirmationProps) {
   const getQuestionStatus = (index: number) => {
     const isAnswered = answers[index] !== null;
@@ -78,7 +80,8 @@ export default function SubmitConfirmation({
                     onCancel();
                     onQuestionJump(index);
                   }}
-                  className={`h-7 sm:h-8 rounded-lg font-medium text-xxs sm:text-xs transition-all hover:scale-105 ${statusColor}`}
+                  disabled={isSubmitting}
+                  className={`h-7 sm:h-8 rounded-lg font-medium text-xxs sm:text-xs transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${statusColor}`}
                 >
                   {index + 1}
                 </button>
@@ -119,15 +122,27 @@ export default function SubmitConfirmation({
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 py-2.5 sm:py-3 bg-white border-2 border-stone-300 text-stone-700 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base hover:bg-stone-100 transition-all"
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 sm:py-3 bg-white border-2 border-stone-300 text-stone-700 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base hover:bg-stone-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Go Back
             </button>
             <button
               onClick={onSubmit}
-              className="flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all"
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Submit Exam
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                'Submit Exam'
+              )}
             </button>
           </div>
         </div>

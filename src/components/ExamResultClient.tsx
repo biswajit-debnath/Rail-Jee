@@ -91,7 +91,9 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
                 if (answersData.success && answersData.data?.answers && Array.isArray(answersData.data.answers)) {
                   // Answers are in data.answers array
                   answersData.data.answers.forEach((ans: any) => {
-                    correctAnswersMap.set(ans.questionId || ans.id, ans.correct || ans.answer);
+                    const questionId = ans.questionId ?? ans.id;
+                    const correctAnswer = ans.correct ?? ans.answer;
+                    correctAnswersMap.set(questionId, correctAnswer);
                   });
                 }
                 // Map questions and merge with correct answers from answers API
