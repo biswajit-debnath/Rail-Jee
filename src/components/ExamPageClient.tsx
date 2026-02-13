@@ -35,6 +35,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const [activeExamId, setActiveExamId] = useState<string | null>(null);
   const [practiceAnswers, setPracticeAnswers] = useState<Map<number, number>>(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   // Refs for scroll management
   const contentContainerRef = useRef<HTMLDivElement>(null);
@@ -125,53 +126,71 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   // Handlers
   async function handleStartExam(mode: ExamMode) {
     setExamMode(mode);
+    setIsStarting(true);
     
     try {
-      // Track exam start
-      if (exam?.paperId && exam?.departmentId) {
-        try {
-          const userId = 'pramoduser';
-          
-          const startResponse = await fetch(API_ENDPOINTS.START_EXAM, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              paperId: exam.paperId,
-              departmentId: exam.departmentId,
-            }),
-          });
-          
-          if (startResponse.ok) {
-            const startData = await startResponse.json();
-            if (startData.success && startData.data?.examId) {
-              setActiveExamId(startData.data.examId);
-            }
-          }
-        } catch (err) {
-          console.error('Error tracking exam start:', err);
-        }
+      let examQuestions = questions;
+      
+      // Check if questions are already prefetched or loaded
+      if (questionsPrefetched && questions.length === 0) {
+        // Questions are prefetched but not in state yet, load them
+        examQuestions = await loadQuestions();
+      } else if (questions.length > 0) {
+        // Questions already in state, use them
+        examQuestions = questions;
+      } else {
+        // Questions not available, need to fetch
+        examQuestions = await loadQuestions();
       }
-
-      // Load questions
-      const loadedQuestions = await loadQuestions();
-      if (loadedQuestions && loadedQuestions.length > 0) {
-        examState.initializeExam(loadedQuestions.length);
-        setHasStarted(true);
-
-        // Fetch practice answers if needed
-        if (mode === 'practice') {
-          const answers = await fetchPracticeAnswers();
+      
+      if (!examQuestions || examQuestions.length === 0) {
+        throw new Error('No questions available');
+      }
+      
+      // Initialize exam with loaded questions
+      examState.initializeExam(examQuestions.length);
+      setHasStarted(true);
+      
+      // Track exam start in background (non-blocking)
+      if (exam?.paperId && exam?.departmentId) {
+        const userId = 'pramoduser';
+        
+        fetch(API_ENDPOINTS.START_EXAM, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            paperId: exam.paperId,
+            departmentId: exam.departmentId,
+          }),
+        }).then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+        }).then(startData => {
+          if (startData?.success && startData.data?.examId) {
+            setActiveExamId(startData.data.examId);
+          }
+        }).catch(err => {
+          console.error('Error tracking exam start:', err);
+        });
+      }
+      
+      // Fetch practice answers in background if needed
+      if (mode === 'practice') {
+        fetchPracticeAnswers().then(answers => {
           if (answers) {
             setPracticeAnswers(answers);
           }
-        }
-      } else {
-        throw new Error('No questions available');
+        }).catch(err => {
+          console.error('Error fetching practice answers:', err);
+        });
       }
     } catch (err) {
       console.error('Error starting exam:', err);
       alert('Failed to start exam. Please try again.');
+    } finally {
+      setIsStarting(false);
     }
   }
 
@@ -297,6 +316,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         attemptCount={attemptCount}
         bestScore={bestScore}
         onStartExam={handleStartExam}
+        isStarting={isStarting}
       />
     );
   }

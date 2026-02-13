@@ -171,9 +171,7 @@ export default function DepartmentsPage() {
         setError(error.message || 'Failed to load departments');
         console.error('Error fetching departments:', err);
       } finally {
-        setTimeout(
-          () => setLoading(false), 1500)
-        
+        setLoading(false);
       }
     };
 
@@ -182,10 +180,8 @@ export default function DepartmentsPage() {
 
   const handleDepartmentClick = (deptId: string) => {
     setSelectedDept(deptId);
-    // Add a small delay for the animation before navigating
-    setTimeout(() => {
-      router.push(`/departments/${deptId}`);
-    }, 300);
+    // Navigate immediately for better UX, no artificial delay
+    router.push(`/departments/${deptId}`);
   };
 
   // Loading state
