@@ -163,7 +163,7 @@ function HomeNavbar({ isMobileMenuOpen, setIsMobileMenuOpen, router }: HomeNavba
             <img
               src="/images/logo.png"
               alt="RailJee Logo"
-              className="h-12 sm:h-14 lg:h-16 w-auto transition-transform group-hover:scale-105"
+              className="h-12 sm:h-14 lg:h-14 w-auto transition-transform group-hover:scale-105"
             />
           </Link>
           
