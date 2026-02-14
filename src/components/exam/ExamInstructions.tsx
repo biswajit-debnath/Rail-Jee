@@ -25,6 +25,7 @@ interface ExamInstructionsProps {
     totalQuestions: number;
   } | null;
   onStartExam: (mode: 'exam' | 'practice') => void;
+  isStarting?: boolean;
 }
 
 export default function ExamInstructions({
@@ -33,7 +34,8 @@ export default function ExamInstructions({
   questionsPrefetched,
   attemptCount,
   bestScore,
-  onStartExam
+  onStartExam,
+  isStarting = false
 }: ExamInstructionsProps) {
   const router = useRouter();
   const [selectedMode, setSelectedMode] = useState<'exam' | 'practice' | null>(null);
@@ -300,23 +302,32 @@ export default function ExamInstructions({
           {/* Start Button */}
           <button
             onClick={() => selectedMode && onStartExam(selectedMode)}
-            disabled={questionsLoading || !selectedMode}
+            disabled={questionsLoading || !selectedMode || isStarting}
             className={`w-full py-3 sm:py-3.5 lg:py-4 bg-gradient-to-r ${
               selectedMode === 'practice' 
                 ? 'from-orange-600 to-orange-500' 
                 : 'from-blue-600 to-indigo-600'
             } text-white rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg transition-all ${
-              questionsLoading || !selectedMode
+              questionsLoading || !selectedMode || isStarting
                 ? 'opacity-50 cursor-not-allowed' 
                 : 'hover:scale-[1.02] hover:shadow-xl'
-            }`}
+            } flex items-center justify-center gap-2`}
           >
-            {questionsLoading 
-              ? 'Preparing Questions...' 
-              : !selectedMode
-              ? 'Select a Mode to Continue'
-              : `Start ${selectedMode === 'exam' ? 'Exam' : 'Practice'}`
-            }
+            {isStarting ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Starting {selectedMode === 'exam' ? 'Exam' : 'Practice'}...</span>
+              </>
+            ) : questionsLoading ? (
+              'Preparing Questions...'
+            ) : !selectedMode ? (
+              'Select a Mode to Continue'
+            ) : (
+              `Start ${selectedMode === 'exam' ? 'Exam' : 'Practice'}`
+            )}
           </button>
         </div>
       </main>

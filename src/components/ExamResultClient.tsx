@@ -31,7 +31,11 @@ interface ExamResultData {
   accuracy: number;
   startTime: string;
   endTime: string;
-  timeTaken: number;
+  timeTaken: {
+    hours: number;
+    minutes: number;
+    seconds: number;
+  };
   status: string;
   percentile: number;
   isPassed: boolean;
@@ -91,7 +95,9 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
                 if (answersData.success && answersData.data?.answers && Array.isArray(answersData.data.answers)) {
                   // Answers are in data.answers array
                   answersData.data.answers.forEach((ans: any) => {
-                    correctAnswersMap.set(ans.questionId || ans.id, ans.correct || ans.answer);
+                    const questionId = ans.questionId ?? ans.id;
+                    const correctAnswer = ans.correct ?? ans.answer;
+                    correctAnswersMap.set(questionId, correctAnswer);
                   });
                 }
                 // Map questions and merge with correct answers from answers API
@@ -185,9 +191,15 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
     );
   }
 
-  // Calculate time taken display
-  const minutesTaken = Math.floor(resultData.timeTaken / 60);
-  const secondsTaken = resultData.timeTaken % 60;
+  // Format time taken display
+  const formatTimeTaken = () => {
+    const { hours, minutes, seconds } = resultData.timeTaken;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+    return parts.join(' ');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-orange-50/30 to-stone-100 flex flex-col">
@@ -308,7 +320,7 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-stone-500">Time Taken</p>
-                  <p className="font-bold text-stone-800 text-sm sm:text-base">{minutesTaken}m {secondsTaken}s</p>
+                  <p className="font-bold text-stone-800 text-sm sm:text-base">{formatTimeTaken()}</p>
                 </div>
               </div>
 
