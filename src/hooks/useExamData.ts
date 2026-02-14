@@ -262,7 +262,7 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
           passingMarks: paper.passMarks || 40,
           passingPercentage: paper.passingPercentage,
           negativeMarking: paper.negativeMarking || 0.33,
-          studentsAttempted: paper.usersAttempted || Math.floor(Math.random() * 5000) + 1000
+          studentsAttempted: paper.usersAttempted || 0
         };
 
         setExam(examData);

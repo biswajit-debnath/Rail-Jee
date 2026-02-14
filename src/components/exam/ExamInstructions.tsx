@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface ExamInstructionsProps {
   exam: {
@@ -53,11 +54,13 @@ export default function ExamInstructions({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <img
-            src="/images/logo.png"
-            alt="RailJee Logo"
-            className="h-8 sm:h-10 w-auto"
-          />
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <img
+              src="/images/logo.png"
+              alt="RailJee Logo"
+              className="h-8 sm:h-10 w-auto"
+            />
+          </Link>
         </div>
       </header>
 
