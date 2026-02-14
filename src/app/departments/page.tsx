@@ -385,13 +385,13 @@ export default function DepartmentsPage() {
         {/* Bottom Info */}
 
         {/* Decorative Track */}
-        <div className="mt-[-60px] relative left-1/2 right-1/2 -ml-[75vw] -mr-[75vw] w-[150vw] h-16 sm:h-80 overflow-hidden">
+        {/* <div className="mt-[-60px] relative left-1/2 right-1/2 -ml-[75vw] -mr-[75vw] w-[150vw] h-16 sm:h-80 overflow-hidden">
           <Lottie
             animationData={departmentAnimation}
             loop={true}
             className="w-full h-full object-cover"
           />
-        </div>
+        </div> */}
       </main>
     </div>
     </>
