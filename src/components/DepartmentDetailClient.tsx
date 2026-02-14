@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
 import { departmentCache } from '@/lib/departmentCache';
 import { ExamPaper, Material, DepartmentInfo, DepartmentData } from '@/lib/types';
@@ -48,6 +48,14 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [generalDeptId, setGeneralDeptId] = useState<string>('');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalPapersCount, setTotalPapersCount] = useState(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const PAGE_SIZE = 12;
+
   // Close sort dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -62,12 +70,20 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
     }
   }, [showSortDropdown]);
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+  }, [paperTypeFilter, selectedPaperCode]);
+
   // Fetch department data from API
   useEffect(() => {
     const fetchDepartmentData = async () => {
+      const isLoadingMore = page > 1;
       try {
-        // Use different loading states for initial vs filter changes
-        if (isInitialLoad) {
+        if (isLoadingMore) {
+          setLoadingMore(true);
+        } else if (isInitialLoad) {
           setLoading(true);
         } else {
           setLoadingPapers(true);
@@ -136,13 +152,13 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
         
         if (paperTypeFilter === 'general' && selectedPaperCode) {
           // General paper: common papers across departments
-          papersUrl += `?paperCode=${selectedPaperCode}&paperType=general`;
+          papersUrl += `?paperCode=${selectedPaperCode}&paperType=general&page=${page}`;
         } else if (paperTypeFilter === 'sectional' && selectedPaperCode) {
           // Sectional paper: section-wise breakdown by paper code
-          papersUrl += `?paperCode=${selectedPaperCode}&paperType=sectional`;
+          papersUrl += `?paperCode=${selectedPaperCode}&paperType=sectional&page=${page}`;
         } else {
           // Full paper (Previous Year): complete papers
-          papersUrl += `?paperType=full`;
+          papersUrl += `?paperType=full&page=${page}`;
         }
         
         // Fetch papers from external API
@@ -199,6 +215,19 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
           negativeMarking: paper.negativeMarking
         })) || [];
         
+        // Determine if there are more pages from pagination object
+        const pagination = papersData.data?.pagination;
+        if (pagination && pagination.total != null) {
+          setTotalPapersCount(pagination.total);
+        }
+        if (pagination && pagination.totalPages != null) {
+          setHasMore(page < pagination.totalPages);
+        } else if (pagination && pagination.total != null && pagination.limit != null) {
+          setHasMore(page * pagination.limit < pagination.total);
+        } else {
+          setHasMore(transformedPapers.length >= PAGE_SIZE);
+        }
+
         // Map department data
         const departmentInfo: DepartmentInfo = {
           id: slug,
@@ -210,15 +239,24 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
           },
           departmentId: apiDeptId
         };
-        
-        setDepartmentData({
-          department: departmentInfo,
-          papers: transformedPapers,
-          filters: {
-            examTypes: mainFilters.length > 0 ? mainFilters : [],
-            subjects: generalFilters.length > 0 ? generalFilters : []
-          }
-        });
+
+        if (isLoadingMore && departmentData) {
+          // Append papers for infinite scroll
+          setDepartmentData({
+            ...departmentData,
+            department: departmentInfo,
+            papers: [...departmentData.papers, ...transformedPapers],
+          });
+        } else {
+          setDepartmentData({
+            department: departmentInfo,
+            papers: transformedPapers,
+            filters: {
+              examTypes: mainFilters.length > 0 ? mainFilters : [],
+              subjects: generalFilters.length > 0 ? generalFilters : []
+            }
+          });
+        }
         
         // Prefetch materials in the background
         setTimeout(() => {
@@ -231,12 +269,28 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
       } finally {
         setLoading(false);
         setLoadingPapers(false);
+        setLoadingMore(false);
         setIsInitialLoad(false);
       }
     };
 
     fetchDepartmentData();
-  }, [slug, paperTypeFilter, selectedPaperCode]);
+  }, [slug, paperTypeFilter, selectedPaperCode, page]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loadingPapers && !loading) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadingPapers, loading]);
 
   // Transform external API material to internal format (direct mapping)
   const transformMaterial = (externalMaterial: any): Material => {
@@ -478,7 +532,7 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
               {/* Results Count */}
               <div className="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
                 <p className="text-stone-600 text-sm sm:text-base">
-                  Showing <span className="font-semibold text-stone-900 text-base sm:text-lg">{filteredPapers.length}</span> {filteredPapers.length === 1 ? 'paper' : 'papers'}
+                  Showing <span className="font-semibold text-stone-900 text-base sm:text-lg">{totalPapersCount || filteredPapers.length}</span> {(totalPapersCount || filteredPapers.length) === 1 ? 'paper' : 'papers'}
                 </p>
                 <div className="hidden lg:flex items-center gap-3 text-stone-700 text-sm relative" ref={sortDropdownRef}>
                   <button 
@@ -529,7 +583,7 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
 
               {/* Papers Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {filteredPapers.length === 0 ? (
+                {filteredPapers.length === 0 && !loadingPapers ? (
                   <div className="md:col-span-2 lg:col-span-3 rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 text-center">
                     <svg className="w-12 h-12 sm:w-16 sm:h-16 text-orange-400 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -548,6 +602,24 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
                   ))
                 )}
               </div>
+
+              {/* Infinite scroll sentinel & loading indicator */}
+              {activeTab === 'papers' && (
+                <div ref={sentinelRef} className="flex justify-center py-6">
+                  {loadingMore && (
+                    <div className="flex items-center gap-3">
+                      <svg className="animate-spin h-6 w-6 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-65" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-stone-600 text-sm font-medium">Loading more papers...</span>
+                    </div>
+                  )}
+                  {!hasMore && filteredPapers.length > 0 && !loadingPapers && (
+                    <p className="text-stone-400 text-sm">You&apos;ve reached the end</p>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <>
