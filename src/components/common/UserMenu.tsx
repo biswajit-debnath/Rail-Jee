@@ -61,9 +61,7 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   function handleSignOut() {
     setSigningOut(true)
-    /* AUTH DISABLED - Uncomment to re-enable authentication
     supabase.auth.signOut()
-    */
     window.location.href = '/'
   }
 

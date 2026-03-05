@@ -61,7 +61,7 @@ export default function Navbar({ user }: NavbarProps) {
             ))}
           </div>
 
-          {/* Auth/CTA Buttons - AUTH DISABLED: Sign In/Sign Up buttons hidden */}
+          {/* Auth/CTA Buttons */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             {user ? (
               <>
@@ -75,7 +75,6 @@ export default function Navbar({ user }: NavbarProps) {
               </>
             ) : (
               <>
-                {/* AUTH DISABLED - Uncomment to show Sign In/Sign Up buttons
                 <Link
                   href="/auth/signin"
                   className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
@@ -88,7 +87,6 @@ export default function Navbar({ user }: NavbarProps) {
                 >
                   Sign Up
                 </Link>
-                */}
               </>
             )}
 
@@ -149,7 +147,6 @@ export default function Navbar({ user }: NavbarProps) {
                     </a>
                   )
                 ))}
-                {/* AUTH DISABLED - Mobile CTA button hidden
                 <button
                   onClick={() => {
                     navigate('/departments');
@@ -159,7 +156,6 @@ export default function Navbar({ user }: NavbarProps) {
                 >
                   Start Preparing
                 </button>
-                */}
               </div>
             </div>
           </div>

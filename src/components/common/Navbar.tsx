@@ -34,15 +34,10 @@ export default function Navbar({
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    /* AUTH DISABLED - Uncomment to re-enable authentication
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ?? null);
     });
-    */
-    
-    // Mock user for testing without auth (set to null to hide user menu)
-    setUser(null);
   }, []);
 
   // Home variant - Full navbar with navigation

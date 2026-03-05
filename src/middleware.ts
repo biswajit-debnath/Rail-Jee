@@ -6,7 +6,6 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   })
 
-  /* AUTH DISABLED - Uncomment to re-enable authentication
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -50,7 +49,6 @@ export async function middleware(request: NextRequest) {
   if (isAuthPage && user && !pathname.includes('/callback')) {
     return NextResponse.redirect(new URL('/departments', request.url))
   }
-  */
 
   return response
 }
