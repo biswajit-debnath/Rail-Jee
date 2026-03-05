@@ -1,19 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_ENDPOINTS } from '@/lib/apiConfig';
 import { useNavigation } from '@/components/NavigationProvider';
 import { type TopPaper } from '@/lib/api';
-import { departmentCache } from '@/lib/departmentCache';
 
 // Function to get exam-specific icons based on multiple fields
 const getExamIcon = (exam: TopPaper): React.ReactNode => {
   const departmentId = (exam.departmentId || '').toLowerCase().trim();
   const examName = (exam.name || '').toLowerCase().trim();
   const examType = (exam.examType || '').toLowerCase().trim();
-  
-  // Debug logging
-  console.log('ExamCards - Dept:', departmentId, 'Name:', examName, 'Type:', examType);
   
   const iconLibrary = {
     civil: (
@@ -122,62 +117,29 @@ const getExamIcon = (exam: TopPaper): React.ReactNode => {
   return fallbackIcons[hash % fallbackIcons.length];
 };
 
-// Resolve department name from cache by departmentId
-const getDepartmentName = (departmentId: string): string => {
+// Resolve department name from the SSR-provided departments list
+const getDepartmentName = (departmentId: string, departments: any[]): string => {
   if (!departmentId) return 'General';
-  const cached = departmentCache.get();
-  if (!cached) return 'General';
-  const dept = cached.departments.find((d: any) =>
+  const dept = departments.find((d: any) =>
     d.departmentId === departmentId || d.id === departmentId || d.slug === departmentId
   );
-  return dept?.name || dept?.departmentName || 'General';
+  return dept?.name || dept?.departmentName || dept?.fullName || 'General';
 };
 
 interface ExamCardsProps {
-  dataReady?: boolean;
-  papers?: TopPaper[];
+  papers: TopPaper[];
+  departments?: any[];
 }
 
-export default function ExamCards({ dataReady = false, papers = [] }: ExamCardsProps) {
+export default function ExamCards({ papers, departments = [] }: ExamCardsProps) {
   const { navigate } = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const [topExams, setTopExams] = useState<TopPaper[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Fetch top papers on mount (only if not already loaded by home page)
-  useEffect(() => {
-    const fetchData = async () => {
-      // If papers are provided as prop, use them
-      if (papers && papers.length > 0) {
-        setTopExams(papers);
-        setLoading(false);
-      } else if (!dataReady) {
-        // Otherwise fetch if not handled by parent
-        try {
-          const response = await fetch(API_ENDPOINTS.TOP_PAPERS);
-          if (!response.ok) {
-            throw new Error('Failed to fetch top papers');
-          }
-          const apiData = await response.json();
-          const fetchedPapers = apiData.data || [];
-          setTopExams(fetchedPapers.slice(0, 6));
-        } catch (error) {
-          console.error('Failed to load top papers:', error);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        // Data is being handled by parent, just wait
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [dataReady, papers]);
+  const topExams = papers;
 
   // Detect screen size for mobile
   useEffect(() => {
@@ -241,26 +203,6 @@ export default function ExamCards({ dataReady = false, papers = [] }: ExamCardsP
     }
     setTimeout(() => setIsAutoPlaying(true), 5000);
   };
-
-  if (loading) {
-    return (
-      <section id="exams" className="py-12 sm:py-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#faf9f7]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10 lg:mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-stone-900 mb-3 sm:mb-4 lg:mb-6">
-              Choose Your Exam
-            </h2>
-            <p className="text-sm sm:text-base text-stone-600 leading-relaxed px-4">
-              Select from our top Railway Recruitment Board exam papers and start your preparation journey
-            </p>
-          </div>
-          <div className="flex items-center justify-center py-8 sm:py-12">
-            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-stone-900"></div>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (topExams.length === 0) {
     return null;
@@ -343,7 +285,7 @@ export default function ExamCards({ dataReady = false, papers = [] }: ExamCardsP
                         <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                        {getDepartmentName(exam.departmentId)}
+                        {getDepartmentName(exam.departmentId, departments)}
                       </span>
                     </div>
 

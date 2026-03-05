@@ -1,9 +1,6 @@
-'use client';
-
-import { useNavigation } from '@/components/NavigationProvider';
+import Link from 'next/link';
 
 export default function Hero() {
-  const { navigate } = useNavigation();
 
   return (
     <section className="relative py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-[#faf9f7]">
@@ -25,7 +22,7 @@ export default function Hero() {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Content */}
           <div className="order-2 lg:order-1">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-stone-900 leading-tight mb-4 sm:mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-900 leading-tight mb-4 sm:mb-6">
               Advance Your{' '}
               <span className="text-orange-600">Railway Career</span>{' '}
               with Departmental Exams
@@ -35,12 +32,12 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <button
-                onClick={() => navigate('/departments')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-stone-900 text-white font-semibold rounded-full hover:bg-stone-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm sm:text-base"
+              <Link
+                href="/departments"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-stone-900 text-white font-semibold rounded-full hover:bg-stone-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm sm:text-base text-center"
               >
                 Get started
-              </button>
+              </Link>
             </div>
 
             {/* Stats */}

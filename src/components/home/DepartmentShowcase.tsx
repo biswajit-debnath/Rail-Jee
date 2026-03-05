@@ -1,9 +1,5 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { API_ENDPOINTS } from '@/lib/apiConfig';
-import { useNavigation } from '@/components/NavigationProvider';
-import { departmentCache } from '@/lib/departmentCache';
+import React from 'react';
+import Link from 'next/link';
 
 interface Department {
   id: string;
@@ -13,7 +9,7 @@ interface Department {
 }
 
 interface DepartmentShowcaseProps {
-  dataReady?: boolean;
+  departments?: any[];
 }
 
 // Icon mapping for departments - using SVG icons to match departments page
@@ -90,91 +86,20 @@ const getDepartmentIcon = (deptId: string, iconName?: string): React.ReactNode =
     return departmentIcons.metro;
   }
   
-  // Log unmatched department for debugging
-  if (normalizedId) {
-    console.log('Department icon not found for:', normalizedId, '- using fallback');
-  }
-  
   // Fallback to civil icon if department not found
   return departmentIcons.civil;
 };
 
-export default function DepartmentShowcase({ dataReady = false }: DepartmentShowcaseProps) {
-  const { navigate } = useNavigation();
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [isLoading, setIsLoading] = useState(!dataReady);
-
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        // Check cache (should be populated by home page)
-        const cached = departmentCache.get();
-        if (cached?.departments) {
-          // Map cached data to display format
-          const mappedDepts = cached.departments.map((dept: any) => {
-            const deptId = dept.slug || dept.id || dept.departmentId || dept.name?.toLowerCase();
-            console.log('Department mapping:', { 
-              original: dept, 
-              extractedId: deptId,
-              slug: dept.slug,
-              id: dept.id,
-              departmentId: dept.departmentId,
-              name: dept.name
-            });
-            return {
-              id: deptId,
-              name: dept.name || dept.fullName,
-              icon: getDepartmentIcon(deptId, dept.icon),
-              description: dept.description || 'Department'
-            };
-          });
-          setDepartments(mappedDepts);
-          setIsLoading(false);
-          return;
-        }
-
-        // If dataReady is true but no cache, wait a bit (race condition)
-        if (dataReady) {
-          setTimeout(fetchDepartments, 100);
-          return;
-        }
-
-        // Fetch from API if no cache
-        const response = await fetch(API_ENDPOINTS.DEPARTMENTS);
-        if (!response.ok) {
-          throw new Error('Failed to fetch departments');
-        }
-
-        const apiData = await response.json();
-        const departmentsData = apiData.data || [];
-
-        // Cache the data
-        departmentCache.set({
-          departments: departmentsData
-        });
-
-        // Map to display format
-        const mappedDepts = departmentsData.map((dept: any) => {
-          const deptId = dept.slug || dept.id || dept.departmentId || dept.name?.toLowerCase();
-          return {
-            id: deptId,
-            name: dept.name || dept.fullName,
-            icon: getDepartmentIcon(deptId, dept.icon),
-            description: dept.description || 'Department'
-          };
-        });
-
-        setDepartments(mappedDepts);
-      } catch (error) {
-        console.error('Error fetching departments:', error);
-        // Fallback to empty array on error
-      } finally {
-        setIsLoading(false);
-      }
+export default function DepartmentShowcase({ departments: rawDepartments = [] }: DepartmentShowcaseProps) {
+  const departments: Department[] = rawDepartments.map((dept: any) => {
+    const deptId = dept.slug || dept.id || dept.departmentId || dept.name?.toLowerCase() || '';
+    return {
+      id: deptId,
+      name: dept.name || dept.fullName || '',
+      icon: getDepartmentIcon(deptId, dept.icon),
+      description: dept.description || 'Department',
     };
-
-    fetchDepartments();
-  }, [dataReady]);
+  });
 
   return (
     <section className="py-12 sm:py-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
@@ -191,24 +116,11 @@ export default function DepartmentShowcase({ dataReady = false }: DepartmentShow
 
         {/* Departments Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8 sm:mb-12">
-          {isLoading ? (
-            // Loading skeleton
-            Array.from({ length: 8 }).map((_, index) => (
-              <div
-                key={index}
-                className="bg-stone-100 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 animate-pulse"
-              >
-                <div className="w-10 h-10 bg-stone-200 rounded mb-2 sm:mb-3"></div>
-                <div className="h-4 bg-stone-200 rounded mb-2 w-3/4"></div>
-                <div className="h-3 bg-stone-200 rounded w-full"></div>
-              </div>
-            ))
-          ) : (
-            departments.map((dept, index) => (
-            <button
+          {departments.map((dept, index) => (
+            <Link
               key={dept.id}
-              onClick={() => navigate(`/departments/${dept.id}`)}
-              className="group relative bg-gradient-to-br from-stone-50 to-stone-100/50 hover:from-white hover:to-stone-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 text-left border border-stone-200/50"
+              href={`/departments/${dept.id}`}
+              className="group relative block bg-gradient-to-br from-stone-50 to-stone-100/50 hover:from-white hover:to-stone-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 text-left border border-stone-200/50"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="mb-2 sm:mb-3 text-orange-600 transform group-hover:scale-110 transition-transform duration-300">{dept.icon}</div>
@@ -218,29 +130,28 @@ export default function DepartmentShowcase({ dataReady = false }: DepartmentShow
               <p className="text-xs text-stone-500 leading-snug">
                 {dept.description}
               </p>
-              
+
               {/* Arrow indicator */}
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                 <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-            </button>
-          ))
-          )}
+            </Link>
+          ))}
         </div>
 
         {/* CTA */}
         <div className="text-center">
-          <button
-            onClick={() => navigate('/departments')}
+          <Link
+            href="/departments"
             className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-stone-900 text-white font-semibold rounded-full hover:bg-stone-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm sm:text-base"
           >
             Browse All Departments
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </button>
+          </Link>
         </div>
       </div>
     </section>
