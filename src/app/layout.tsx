@@ -1,7 +1,26 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Plus_Jakarta_Sans, Tiro_Devanagari_Hindi } from 'next/font/google';
 import "./globals.css";
 import { NavigationProvider } from "@/components/NavigationProvider";
+
+const jakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+  adjustFontFallback: true, // auto-adjusts fallback font metrics to match Plus Jakarta Sans
+  fallback: ['Arial', 'sans-serif'],
+});
+
+const tiroHindi = Tiro_Devanagari_Hindi({
+  subsets: ['devanagari'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  variable: '--font-hindi',
+  display: 'swap',
+  adjustFontFallback: false, // no good system fallback for Devanagari; skip to avoid worse shift
+});
 
 export const metadata: Metadata = {
   title: "Railjee - Railway Exam Platform",
@@ -17,20 +36,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${jakartaSans.variable} ${tiroHindi.variable}`}>
       <head>
-        {/* Preload critical animation file */}
-        <link
-          rel="preload"
-          href="/animation/Train Animation.lottie/a/Main Scene.json"
-          as="fetch"
-          crossOrigin="anonymous"
-        />
-        {/* Optimize font loading */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&display=swap"
-          rel="stylesheet"
-        />
+        {/* Preload above-the-fold images — browser fetches these before parsing <body> */}
+        <link rel="preload" href="/images/logo.png" as="image" />
+        <link rel="preload" href="/images/vande_bharat_01.avif" as="image" type="image/avif" />
       </head>
       <body className="antialiased">
         <Suspense>
