@@ -61,6 +61,7 @@ export interface StatsDepartment {
 // ============== Aggregated Stats ==============
 export interface OverviewStats {
   totalAttempts: number;
+  uniqueExams: number;
   totalPassed: number;
   passRate: number;
   averageScore: number;

@@ -454,7 +454,7 @@ export function getMockExamAttempts(departmentId?: string): ExamAttemptRecord[] 
 export function computeOverviewStats(attempts: ExamAttemptRecord[]): OverviewStats {
   if (attempts.length === 0) {
     return {
-      totalAttempts: 0, totalPassed: 0, passRate: 0,
+      totalAttempts: 0, uniqueExams: 0, totalPassed: 0, passRate: 0,
       averageScore: 0, bestScore: 0, averageAccuracy: 0,
       totalTimeSpent: { hours: 0, minutes: 0, seconds: 0 },
       totalCorrect: 0, totalIncorrect: 0, totalUnattempted: 0,
@@ -462,6 +462,7 @@ export function computeOverviewStats(attempts: ExamAttemptRecord[]): OverviewSta
   }
 
   const totalAttempts = attempts.length;
+  const uniqueExams = new Set(attempts.map(a => a.paperId)).size;
   const totalPassed = attempts.filter(a => a.isPassed).length;
   const passRate = (totalPassed / totalAttempts) * 100;
   const averageScore = attempts.reduce((s, a) => s + a.percentage, 0) / totalAttempts;
@@ -479,7 +480,7 @@ export function computeOverviewStats(attempts: ExamAttemptRecord[]): OverviewSta
   });
 
   return {
-    totalAttempts, totalPassed, passRate,
+    totalAttempts, uniqueExams, totalPassed, passRate,
     averageScore, bestScore, averageAccuracy,
     totalTimeSpent: {
       hours: Math.floor(totalSecs / 3600),
