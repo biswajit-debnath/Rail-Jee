@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Question } from '@/lib/types';
+import MathText from '@/components/common/MathText';
 
 interface ExamQuestionProps {
   question: Question;
@@ -114,12 +115,12 @@ export default function ExamQuestion({
             <p className={`text-sm sm:text-base lg:text-lg font-semibold text-stone-800 leading-relaxed ${
               question.question.hi ? 'mb-2 sm:mb-3' : ''
             }`}>
-              {question.question.en}
+              <MathText text={question.question.en} />
             </p>
           )}
           {question.question.hi && (
             <p className="text-sm sm:text-base lg:text-lg text-stone-600 leading-relaxed rounded-lg font-hindi">
-              {question.question.hi}
+              <MathText text={question.question.hi} />
             </p>
           )}
         </div>
@@ -145,12 +146,12 @@ export default function ExamQuestion({
                             <p className={`text-xs sm:text-sm font-medium text-stone-700 leading-relaxed line-clamp-3 ${
                               detail.hi ? 'mb-1.5 sm:mb-2' : ''
                             }`}>
-                              {detail.en}
+                              <MathText text={detail.en} />
                             </p>
                           )}
                           {detail.hi && (
                             <p className="text-xs sm:text-md text-stone-700 leading-relaxed line-clamp-3 font-hindi">
-                              {detail.hi}
+                              <MathText text={detail.hi} />
                             </p>
                           )}
                         </div>
@@ -213,12 +214,12 @@ export default function ExamQuestion({
                       } ${
                         isCorrectOption ? 'text-yellow-800' : isWrongOption ? 'text-red-800' : isSelected && !reviewMode ? 'text-orange-800' : 'text-stone-700'
                       }`}>
-                        {option.en}
+                        <MathText text={option.en} />
                       </p>
                     )}
                     {option.hi && (
                       <p className="text-xs sm:text-md lg:text-sm text-stone-600 font-hindi">
-                        {option.hi}
+                        <MathText text={option.hi} />
                       </p>
                     )}
                   </div>
