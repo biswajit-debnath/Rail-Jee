@@ -18,7 +18,6 @@ interface UserMenuProps {
 export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const [userProfile, setUserProfile] = useState<any>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -29,22 +28,6 @@ export default function UserMenu({ user }: UserMenuProps) {
     'User'
 
   const displayName = fullName.split(' ')[0]
-
-  useEffect(() => {
-    // Fetch user profile from MongoDB
-    async function fetchProfile() {
-      try {
-        const response = await fetch(`/api/users/${user.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setUserProfile(data.user)
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error)
-      }
-    }
-    fetchProfile()
-  }, [user.id])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -113,11 +96,6 @@ export default function UserMenu({ user }: UserMenuProps) {
               My Statistics
             </Link>
 
-            {userProfile?.examHistory?.length > 0 && (
-              <div className="px-4 py-2 text-xs text-gray-500">
-                {userProfile.examHistory.length} exam{userProfile.examHistory.length !== 1 ? 's' : ''} completed
-              </div>
-            )}
           </div>
 
           <div className="border-t border-gray-100 mt-1 pt-1">
