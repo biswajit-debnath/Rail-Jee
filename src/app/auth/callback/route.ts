@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createUser } from '@/lib/api'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const redirect = requestUrl.searchParams.get('redirect') || '/departments'
+  const redirect = requestUrl.searchParams.get('redirect') || '/'
 
   if (code) {
     const supabase = await createClient()
@@ -15,22 +16,19 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/auth/signin?error=callback_error', requestUrl.origin))
     }
 
-    // For OAuth sign-ups, create MongoDB user profile if it doesn't exist
-    if (data.user) {
-      try {
-        await fetch(`${requestUrl.origin}/api/users/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            supabaseId: data.user.id,
-            email: data.user.email,
-            name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
-          }),
-        })
-      } catch (error) {
-        console.error('Error creating user profile:', error)
-        // Don't fail the callback if MongoDB sync fails
+    // For OAuth sign-ups, create backend user profile if it doesn't exist
+    const user = data.user ?? data.session?.user
+    if (user) {
+      const result = await createUser({
+        supabaseId: user.id,
+        email: user.email!,
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+      })
+      if (!result.success) {
+        console.error('Failed to create user profile:', result.error)
       }
+    } else {
+      console.error('OAuth callback: no user found in session data', data)
     }
   }
 

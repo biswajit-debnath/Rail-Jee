@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && user && !pathname.includes('/callback')) {
-    return NextResponse.redirect(new URL('/departments', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return response

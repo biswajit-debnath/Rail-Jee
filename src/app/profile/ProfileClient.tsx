@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
@@ -16,24 +16,7 @@ interface ProfileClientProps {
   };
 }
 
-interface UserProfile {
-  name: string;
-  email: string;
-
-  createdAt?: string;
-  lastActive?: string;
-  examHistory?: Array<{
-    examId: string;
-    score: number;
-    totalQuestions: number;
-    date: string;
-    passed: boolean;
-  }>;
-}
-
 export default function ProfileClient({ user }: ProfileClientProps) {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const supabase = createClient();
 
@@ -52,49 +35,13 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     .toUpperCase()
     .slice(0, 2);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await fetch(`/api/users/${user.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data.user);
-        }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProfile();
-  }, [user.id]);
-
-  function handleSignOut() {
+  async function handleSignOut() {
     setSigningOut(true);
-    supabase.auth.signOut();
+    await supabase.auth.signOut();
     window.location.href = '/';
   }
 
-  const examHistory = profile?.examHistory || [];
-  const totalExams = examHistory.length;
-  const passedExams = examHistory.filter((e) => e.passed).length;
-  const avgScore =
-    totalExams > 0
-      ? Math.round(
-          examHistory.reduce(
-            (sum, e) => sum + (e.score / e.totalQuestions) * 100,
-            0
-          ) / totalExams
-        )
-      : 0;
-
-  const joinDate = profile?.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : user.created_at
+  const joinDate = user.created_at
     ? new Date(user.created_at).toLocaleDateString('en-IN', {
         year: 'numeric',
         month: 'long',
@@ -180,34 +127,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           </ul>
         </div>
 
-        {/* Exam Stats */}
-        <div className="bg-white rounded-xl border border-stone-100 shadow-sm p-5">
-          <h2 className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-3">
-            Exam Stats
-          </h2>
-          {loading ? (
-            <div className="flex items-center justify-center h-20 text-stone-300">
-              <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <p className="text-2xl font-bold text-blue-700">{totalExams}</p>
-                <p className="text-xs text-stone-500 mt-0.5">Total</p>
-              </div>
-              <div className="bg-green-50 rounded-lg p-3">
-                <p className="text-2xl font-bold text-green-700">{passedExams}</p>
-                <p className="text-xs text-stone-500 mt-0.5">Passed</p>
-              </div>
-              <div className="bg-orange-50 rounded-lg p-3">
-                <p className="text-2xl font-bold text-orange-600">{avgScore}%</p>
-                <p className="text-xs text-stone-500 mt-0.5">Avg Score</p>
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
     </div>
   );

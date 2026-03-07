@@ -48,8 +48,20 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
           setIsNavigating(false);
         });
       });
+    } else if (isNavigating) {
+      // Pathname didn't change (e.g. middleware redirect back to same page);
+      // reset the loader so it doesn't get stuck.
+      setIsNavigating(false);
     }
   }, [pathname, searchParams]);
+
+  // Safety timeout: if pathname hasn't changed within 5 s of starting navigation
+  // (e.g. middleware redirected back to the same page), dismiss the loader.
+  useEffect(() => {
+    if (!isNavigating) return;
+    const timeout = setTimeout(() => setIsNavigating(false), 5000);
+    return () => clearTimeout(timeout);
+  }, [isNavigating]);
 
   // Intercept all anchor clicks (covers <Link> components)
   useEffect(() => {
