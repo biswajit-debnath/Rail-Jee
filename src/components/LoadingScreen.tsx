@@ -15,7 +15,7 @@ interface LoadingScreenProps {
 export default function LoadingScreen({
   isLoading,
   message = 'Loading...',
-  animationPath = '/animation/Train Animation.lottie/a/Main Scene.json',
+  animationPath = '/animation/Trainbasic.lottie/a/Scene.json',
 }: LoadingScreenProps) {
   // Lazy initialiser — reads from cache SYNCHRONOUSLY on first render.
   // If the animation was preloaded, this is already populated and no
