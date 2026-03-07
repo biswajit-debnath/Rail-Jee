@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Question } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import UserMenu from '@/components/common/UserMenu';
-import { ReviewFilter, FilterCounts, QuestionReviewProps, FilteredQuestion } from '@/lib/examTypes';
+import { ReviewFilter, FilterCounts, QuestionReviewProps } from '@/lib/examTypes';
 import { filterQuestions, getFilterCounts } from '@/lib/examUtils';
 import ExamQuestion from './exam/ExamQuestion';
 import QuestionPalette from './exam/QuestionPalette';
@@ -21,8 +20,14 @@ export default function QuestionReview({
   const [reviewQuestionIndex, setReviewQuestionIndex] = useState(0);
   const [showReviewPalette, setShowReviewPalette] = useState(false);
 
-  const filteredQuestions = filterQuestions(questions, answers, reviewFilter);
-  const filterCounts = getFilterCounts(questions, answers);
+  const filteredQuestions = useMemo(
+    () => filterQuestions(questions, answers, reviewFilter),
+    [questions, answers, reviewFilter]
+  );
+  const filterCounts = useMemo(
+    () => getFilterCounts(questions, answers),
+    [questions, answers]
+  );
 
   const handleFilterChange = (filter: ReviewFilter) => {
     setReviewFilter(filter);
@@ -55,6 +60,8 @@ export default function QuestionReview({
     
     setShowReviewPalette(false);
   };
+
+  const allVisited = useMemo(() => new Set(questions.map((_, i) => i)), [questions]);
 
   const currentFilteredItem = filteredQuestions[reviewQuestionIndex];
   const reviewQuestion = currentFilteredItem?.question || questions[0];
@@ -115,7 +122,7 @@ export default function QuestionReview({
         currentQuestionIndex={actualQuestionIndex}
         answers={answers}
         markedForReview={markedForReview}
-        visitedQuestions={new Set(questions.map((_, i) => i))}
+        visitedQuestions={allVisited}
         onQuestionJump={handleJumpToQuestion}
         showMobile={showReviewPalette}
         onCloseMobile={() => setShowReviewPalette(false)}

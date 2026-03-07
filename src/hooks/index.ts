@@ -5,4 +5,4 @@ export { useExamState, useQuestionReview } from './useExamState';
 export { useExamSubmission } from './useExamSubmission';
 
 // Re-export types
-export type { ExamMode, ExamProgress } from './useExamState';
+export type { ExamMode } from './useExamState';

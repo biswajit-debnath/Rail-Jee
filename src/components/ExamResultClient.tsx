@@ -111,7 +111,6 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
                   correctAnswer: correctAnswersMap.get(q.id) ?? q.correctAnswer
                 }));
                 setQuestions(transformedQuestions);
-                console.log('Fetched questions and answers successfully:', transformedQuestions);
               }
             }
           } catch (err) {
@@ -188,7 +187,7 @@ export default function ExamResultClient({ examId }: ExamResultClientProps) {
   if (showQuestionReview && questions.length > 0) {
     return (
       <QuestionReview
-        examName={`Paper - ${resultData?.paperName || 'Paper'}`}
+        examName={`Paper - ${resultData.paperName}`}
         questions={questions}
         answers={getAnswersArray()}
         markedForReview={getMarkedForReview()}

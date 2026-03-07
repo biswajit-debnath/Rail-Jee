@@ -12,11 +12,14 @@ import { type TopPaper } from '@/lib/api';
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch both datasets in parallel with a 5-minute server-side cache.
-  // On a cache hit the server responds in ~1 ms; on miss it waits for the API.
-  const [departments, papers] = await Promise.all([
+  // Use getSession() — reads JWT from cookie without a network call to Supabase.
+  // getUser() makes an external auth-server request on every load which adds
+  // significant latency. The middleware has already validated the session, so
+  // trusting the cookie-based session here is safe.
+  // Run all three fetches in parallel to minimise total wait time.
+  const [sessionResult, departments, papers] = await Promise.all([
+    supabase.auth.getSession(),
     fetch(API_ENDPOINTS.DEPARTMENTS, { next: { revalidate: 300 } })
       .then(r => r.ok ? r.json() : { data: [] })
       .then((json: any) => (json.data ?? []) as any[])
@@ -26,6 +29,7 @@ export default async function Home() {
       .then((json: any) => ((json.data ?? []) as TopPaper[]).slice(0, 6))
       .catch(() => [] as TopPaper[]),
   ]);
+  const user = sessionResult.data.session?.user ?? null;
 
   return (
     <main className="min-h-screen bg-white">

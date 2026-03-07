@@ -16,6 +16,14 @@ interface ExamResultProps {
   accuracy: number;
 }
 
+function formatTimeTaken({ hours, minutes, seconds }: { hours: number; minutes: number; seconds: number }): string {
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  return parts.join(' ');
+}
+
 export default function ExamResult({ 
   isPassed, 
   passPercentage, 
@@ -29,14 +37,6 @@ export default function ExamResult({
   attemptedQuestions,
   accuracy
 }: ExamResultProps) {
-  const formatTimeTaken = () => {
-    const { hours, minutes, seconds } = timeTaken;
-    const parts = [];
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
-    return parts.join(' ');
-  };
 
   return (
     <>
@@ -153,7 +153,7 @@ export default function ExamResult({
             </div>
             <div>
               <p className="text-xs sm:text-sm text-stone-500">Time Taken</p>
-              <p className="font-bold text-stone-800 text-sm sm:text-base">{formatTimeTaken()}</p>
+              <p className="font-bold text-stone-800 text-sm sm:text-base">{formatTimeTaken(timeTaken)}</p>
             </div>
           </div>
 
