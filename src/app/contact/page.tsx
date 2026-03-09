@@ -28,9 +28,9 @@ const contactDetails = [
       </svg>
     ),
     title: 'Community & Feedback',
-    value: 'GitHub Discussions',
-    href: 'https://github.com',
-    desc: 'Share feature requests, bugs, or ideas.',
+    value: 'Whatsapp Community',
+    href: 'https://chat.whatsapp.com/EXAMPLELINK',
+    desc: 'Interact, discuss, and prepare with fellow railway employees.',
   },
   {
     icon: (
@@ -56,7 +56,7 @@ const faqs = [
   },
   {
     q: 'How do I delete my account?',
-    a: 'Go to your Profile page and use the "Delete Account" option, or email us and we\'ll handle it within 48 hours.',
+    a: 'Email us directly at railjee.official@gmail.com to request account deletion. Our team will completely remove your data within 48 hours.',
   },
 ];
 
@@ -81,7 +81,7 @@ export default async function ContactPage() {
             <span className="text-orange-600">Hear From You</span>
           </h1>
           <p className="text-stone-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
-            Have a question, found a bug, or want to suggest new content? Reach out — our team is happy to help every railway aspirant on their journey.
+            Have a question, found a bug, or want to suggest new content? Reach out to us. Our team is happy to help every railway professional advance their career.
           </p>
         </div>
       </section>
@@ -144,7 +144,7 @@ export default async function ContactPage() {
             Ready to Start Preparing?
           </h2>
           <p className="text-stone-600 text-sm sm:text-base mb-8 leading-relaxed">
-            While you wait for our reply, dive into thousands of practice questions across all railway departments — completely free.
+            While you wait for our reply, start practicing with authentic exam questions across all major railway departments.
           </p>
           <Link
             href="/departments"
