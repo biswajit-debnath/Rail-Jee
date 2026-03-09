@@ -9,7 +9,6 @@ export interface CreateUserPayload {
 
 export async function createUser(payload: CreateUserPayload): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log(`Creating user with payload: ${JSON.stringify(payload)}`);
     const response = await fetch(API_ENDPOINTS.USERS, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -17,19 +16,14 @@ export async function createUser(payload: CreateUserPayload): Promise<{ success:
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch((err) => {
-        console.error('Failed to parse error response:', err);
-        return { message: `Error creating user HTTP error! status: ${response.status}` };
-      });
-      return { success: false, error: errorData.message || `Error creating user HTTP error! status: ${response.status}` };
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
     }
 
     return { success: true };
   } catch (error: any) {
-    console.error(`Error creating user: ${error.message}`);
     return { success: false, error: error.message || 'Failed to create user profile' };
   }
-}
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
