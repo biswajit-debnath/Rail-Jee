@@ -24,6 +24,7 @@ export async function createUser(payload: CreateUserPayload): Promise<{ success:
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to create user profile' };
   }
+}
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
