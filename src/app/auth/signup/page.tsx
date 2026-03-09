@@ -41,7 +41,7 @@ export default function SignUpPage() {
         const { success, error: createError } = await createUser({
           supabaseId: data.user.id,
           email: data.user.email!,
-          name,
+          username: name,
         })
 
         if (!success) {
