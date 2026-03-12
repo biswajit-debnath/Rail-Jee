@@ -32,7 +32,7 @@ const features = [
       </svg>
     ),
     title: 'Bilingual Support',
-    desc: 'All questions and explanations in Hindi and English. Switch anytime during practice.',
+    desc: 'Read questions in Hindi and English simultaneously. Clear visibility for every railway professional.',
   },
   {
     icon: (
