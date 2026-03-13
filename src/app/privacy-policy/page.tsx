@@ -52,7 +52,7 @@ export default async function PrivacyPolicyPage() {
               <SubSection title="1.2 Information Collected Automatically">
                 <ul className="list-disc pl-5 space-y-2 mt-2">
                   <li><strong>Exam Activity:</strong> Your selected answers, scores, time taken per question, and exam attempt records to power your personal statistics dashboard.</li>
-                  <li><strong>Local Storage Data:</strong> Exam attempt history is stored in your browser's local storage so your progress is preserved across sessions without requiring a server round trip.</li>
+                  <li><strong>Local Storage Data:</strong> Exam attempt history is stored in your browser&apos;s local storage so your progress is preserved across sessions without requiring a server round trip.</li>
                   <li><strong>Usage Data:</strong> Pages visited, features used, and session duration to help us understand how the platform is used and where we can improve.</li>
                   <li><strong>Device Information:</strong> Browser type, operating system, and IP address collected for security purposes and to ensure platform compatibility.</li>
                 </ul>
@@ -80,7 +80,7 @@ export default async function PrivacyPolicyPage() {
                 Your account data and exam records are stored securely on servers managed by Supabase, our database and authentication provider. Data is encrypted at rest and in transit using industry standard TLS encryption.
               </p>
               <p className="mt-3">
-                Exam attempt data is also stored in your browser's local storage for fast, offline access to your stats. This data remains on your device until you clear your browser storage or request account deletion.
+                Exam attempt data is also stored in your browser&apos;s local storage for fast, offline access to your stats. This data remains on your device until you clear your browser storage or request account deletion.
               </p>
               <p className="mt-3">
                 We retain your personal data for as long as your account is active. If you request account deletion, we will remove your personal data within 48 hours. Aggregated and anonymized usage data may be retained for platform improvement purposes.
