@@ -41,11 +41,11 @@ export async function middleware(request: NextRequest) {
   const user = session?.user ?? null
 
   // TESTING: Disabled authentication protection - all pages are public
-  // if (isProtectedRoute && !user) {
-  //   const redirectUrl = new URL('/auth/signin', request.url)
-  //   redirectUrl.searchParams.set('redirect', pathname)
-  //   return NextResponse.redirect(redirectUrl)
-  // }
+  if (isProtectedRoute && !user) {
+    const redirectUrl = new URL('/auth/signin', request.url)
+    redirectUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
 
   if (isAuthPage && user && !pathname.includes('/callback')) {
     return NextResponse.redirect(new URL('/', request.url))
