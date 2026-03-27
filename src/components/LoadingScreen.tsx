@@ -2,20 +2,9 @@
 
 import Lottie from 'lottie-react';
 import { useEffect, useState } from 'react';
+import { animationCache, preloadAnimation } from '@/lib/animationCache';
 
-// Module-level cache — survives re-mounts, cleared only on full page reload
-const animationCache = new Map<string, any>();
-
-// Call this anywhere to start the fetch early (fire-and-forget)
-export function preloadAnimation(
-  animationPath = '/animation/Train Animation.lottie/a/Main Scene.json'
-) {
-  if (animationCache.has(animationPath)) return; // already cached
-  fetch(animationPath, { cache: 'force-cache' })
-    .then((r) => r.json())
-    .then((data) => animationCache.set(animationPath, data))
-    .catch(() => {});
-}
+export { preloadAnimation };
 
 interface LoadingScreenProps {
   isLoading: boolean;
@@ -26,7 +15,7 @@ interface LoadingScreenProps {
 export default function LoadingScreen({
   isLoading,
   message = 'Loading...',
-  animationPath = '/animation/Train Animation.lottie/a/Main Scene.json',
+  animationPath = '/animation/Trainbasic.lottie/a/Scene.json',
 }: LoadingScreenProps) {
   // Lazy initialiser — reads from cache SYNCHRONOUSLY on first render.
   // If the animation was preloaded, this is already populated and no
@@ -56,7 +45,7 @@ export default function LoadingScreen({
   if (!isLoading) return null;
 
   return (
-    <div className="fixed inset-0 bg-white flex items-center justify-center z-[9999]">
+    <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999]">
       <div className="w-80 h-80 sm:w-96 sm:h-96">
         {animationData && Object.keys(animationData).length > 0 ? (
           <Lottie
@@ -66,15 +55,15 @@ export default function LoadingScreen({
             style={{ width: '100%', height: '100%' }}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+          <div className="w-full h-full flex items-center justify-center">
             <div className="relative w-16 h-16">
               <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
               <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
             </div>
-            <p className="text-stone-600 text-sm font-medium">{message}</p>
           </div>
         )}
       </div>
+      <p className="text-stone-700 text-base font-semibold tracking-wide">{message}</p>
     </div>
   );
 }

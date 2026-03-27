@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Question } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import UserMenu from '@/components/common/UserMenu';
-import { ReviewFilter, FilterCounts, QuestionReviewProps, FilteredQuestion } from '@/lib/examTypes';
+import { ReviewFilter, FilterCounts, QuestionReviewProps } from '@/lib/examTypes';
 import { filterQuestions, getFilterCounts } from '@/lib/examUtils';
 import ExamQuestion from './exam/ExamQuestion';
 import QuestionPalette from './exam/QuestionPalette';
@@ -21,8 +20,14 @@ export default function QuestionReview({
   const [reviewQuestionIndex, setReviewQuestionIndex] = useState(0);
   const [showReviewPalette, setShowReviewPalette] = useState(false);
 
-  const filteredQuestions = filterQuestions(questions, answers, reviewFilter);
-  const filterCounts = getFilterCounts(questions, answers);
+  const filteredQuestions = useMemo(
+    () => filterQuestions(questions, answers, reviewFilter),
+    [questions, answers, reviewFilter]
+  );
+  const filterCounts = useMemo(
+    () => getFilterCounts(questions, answers),
+    [questions, answers]
+  );
 
   const handleFilterChange = (filter: ReviewFilter) => {
     setReviewFilter(filter);
@@ -56,6 +61,8 @@ export default function QuestionReview({
     setShowReviewPalette(false);
   };
 
+  const allVisited = useMemo(() => new Set(questions.map((_, i) => i)), [questions]);
+
   const currentFilteredItem = filteredQuestions[reviewQuestionIndex];
   const reviewQuestion = currentFilteredItem?.question || questions[0];
   const actualQuestionIndex = currentFilteredItem?.index || 0;
@@ -67,7 +74,6 @@ export default function QuestionReview({
       <ReviewHeader 
         examName={examName}
         onBack={onBackToResult}
-        onShowPalette={() => setShowReviewPalette(true)}
       />
 
       {/* Filter Tabs */}
@@ -75,10 +81,11 @@ export default function QuestionReview({
         activeFilter={reviewFilter}
         filterCounts={filterCounts}
         onFilterChange={handleFilterChange}
+        onShowPalette={() => setShowReviewPalette(true)}
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto  pb-4">
+      <main className="flex-1 overflow-y-hidden pb-4">
         <div className="max-w-2xl mx-auto px-3 sm:px-4">
           {filteredQuestions.length === 0 ? (
             <EmptyFilterMessage filter={reviewFilter} />
@@ -115,7 +122,7 @@ export default function QuestionReview({
         currentQuestionIndex={actualQuestionIndex}
         answers={answers}
         markedForReview={markedForReview}
-        visitedQuestions={new Set(questions.map((_, i) => i))}
+        visitedQuestions={allVisited}
         onQuestionJump={handleJumpToQuestion}
         showMobile={showReviewPalette}
         onCloseMobile={() => setShowReviewPalette(false)}
@@ -131,10 +138,9 @@ export default function QuestionReview({
 interface ReviewHeaderProps {
   examName: string;
   onBack: () => void;
-  onShowPalette: () => void;
 }
 
-function ReviewHeader({ examName, onBack, onShowPalette }: ReviewHeaderProps) {
+function ReviewHeader({ examName, onBack }: ReviewHeaderProps) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -163,23 +169,12 @@ function ReviewHeader({ examName, onBack, onShowPalette }: ReviewHeaderProps) {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={onShowPalette}
-              className="p-1.5 hover:bg-stone-100 rounded-lg transition-all flex items-center justify-center"
-            >
-              <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={1.5} />
-                <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={1.5} />
-                <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={1.5} />
-                <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={1.5} />
-              </svg>
-            </button>
             {user && <UserMenu user={user} />}
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <img
                 src="/images/logo.png"
                 alt="RailJee Logo"
-                className="h-8 sm:h-10 w-auto"
+                className="h-7 sm:h-10 w-auto"
               />
             </Link>
           </div>
@@ -193,9 +188,10 @@ interface FilterTabsProps {
   activeFilter: ReviewFilter;
   filterCounts: FilterCounts;
   onFilterChange: (filter: ReviewFilter) => void;
+  onShowPalette: () => void;
 }
 
-function FilterTabs({ activeFilter, filterCounts, onFilterChange }: FilterTabsProps) {
+function FilterTabs({ activeFilter, filterCounts, onFilterChange, onShowPalette }: FilterTabsProps) {
   const filters: { key: ReviewFilter; label: string; activeClass: string }[] = [
     { key: 'all', label: 'All', activeClass: 'bg-stone-800 text-white' },
     { key: 'correct', label: 'Correct', activeClass: 'bg-green-500 text-white' },
@@ -204,20 +200,35 @@ function FilterTabs({ activeFilter, filterCounts, onFilterChange }: FilterTabsPr
   ];
 
   return (
-    <div className="sticky top-[60px] z-30">
-      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {filters.map(({ key, label, activeClass }) => (
-            <button
-              key={key}
-              onClick={() => onFilterChange(key)}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-medium text-xxs sm:text-xs transition-all ${
-                activeFilter === key ? activeClass : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-              }`}
-            >
-              {label} ({filterCounts[key]})
-            </button>
-          ))}
+    <div>
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-1 sm:py-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 flex-1">
+            {filters.map(({ key, label, activeClass }) => (
+              <button
+                key={key}
+                onClick={() => onFilterChange(key)}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-medium text-xxs sm:text-xs transition-all ${
+                  activeFilter === key ? activeClass : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {label} ({filterCounts[key]})
+              </button>
+            ))}
+          </div>
+          {/* Palette Button */}
+          <button
+            onClick={onShowPalette}
+            className="ml-auto p-1.5 bg-stone-100 hover:bg-stone-200 rounded-lg transition-all flex items-center justify-center flex-shrink-0"
+            title="Question Palette"
+          >
+            <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={1.5} />
+              <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={1.5} />
+              <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={1.5} />
+              <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={1.5} />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -258,13 +269,13 @@ interface ReviewNavigationProps {
 
 function ReviewNavigation({ currentIndex, totalFiltered, onPrevious, onNext }: ReviewNavigationProps) {
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4">
+    <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-2">
       <div className="flex items-center justify-between gap-2 sm:gap-3">
         {/* Previous Button */}
         <button
           onClick={onPrevious}
           disabled={currentIndex === 0}
-          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-stone-100 text-stone-700 rounded-lg sm:rounded-xl hover:bg-stone-200 transition-all font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 text-stone-700 rounded-lg sm:rounded-xl hover:bg-stone-200 transition-all font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -276,7 +287,7 @@ function ReviewNavigation({ currentIndex, totalFiltered, onPrevious, onNext }: R
         <button
           onClick={onNext}
           disabled={currentIndex === totalFiltered - 1}
-          className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span>Next</span>
           <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

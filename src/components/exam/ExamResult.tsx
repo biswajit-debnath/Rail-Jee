@@ -16,6 +16,14 @@ interface ExamResultProps {
   accuracy: number;
 }
 
+function formatTimeTaken({ hours, minutes, seconds }: { hours: number; minutes: number; seconds: number }): string {
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  return parts.join(' ');
+}
+
 export default function ExamResult({ 
   isPassed, 
   passPercentage, 
@@ -29,14 +37,6 @@ export default function ExamResult({
   attemptedQuestions,
   accuracy
 }: ExamResultProps) {
-  const formatTimeTaken = () => {
-    const { hours, minutes, seconds } = timeTaken;
-    const parts = [];
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
-    return parts.join(' ');
-  };
 
   return (
     <>
@@ -132,7 +132,7 @@ export default function ExamResult({
       {/* Exam Details */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm border border-stone-100 mb-4 sm:mb-5 lg:mb-6">
         <h3 className="text-base sm:text-lg font-bold text-stone-800 mb-3 sm:mb-4">Exam Details</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-stone-50 rounded-lg sm:rounded-xl">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +153,7 @@ export default function ExamResult({
             </div>
             <div>
               <p className="text-xs sm:text-sm text-stone-500">Time Taken</p>
-              <p className="font-bold text-stone-800 text-sm sm:text-base">{formatTimeTaken()}</p>
+              <p className="font-bold text-stone-800 text-sm sm:text-base">{formatTimeTaken(timeTaken)}</p>
             </div>
           </div>
 

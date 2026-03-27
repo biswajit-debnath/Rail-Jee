@@ -5,7 +5,7 @@ export default function HowItWorks() {
     {
       number: '01',
       title: 'Choose Your Department',
-      description: 'Select from 8 railway departments including Civil, Mechanical, Electrical, and more based on your current role or career goals.',
+      description: 'Select from 7+ railway departments including Civil, Mechanical, Electrical, and more based on your current role or career goals.',
       icon: (
         <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
@@ -35,7 +35,7 @@ export default function HowItWorks() {
     {
       number: '04',
       title: 'Review & Improve',
-      description: 'Get instant results with detailed explanations. Download study materials and PDFs to strengthen your preparation.',
+      description: 'Get instant results with detailed explanations. Access study materials and PDF to strengthen your preparation.',
       icon: (
         <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -53,38 +53,40 @@ export default function HowItWorks() {
             How It Works
           </h2>
           <p className="text-sm sm:text-base text-stone-600 leading-relaxed px-4">
-            Get started with your departmental exam preparation in four simple steps
+            Get started with your departmental exam preparation in four simple steps.
           </p>
         </div>
 
         {/* Steps Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-6">
           {steps.map((step, index) => (
             <div key={index} className="relative">
               {/* Connector Line - Desktop only */}
               {index < steps.length - 1 && (
                 <div className="hidden lg:block absolute top-16 left-full w-full h-0.5 bg-gradient-to-r from-orange-200 to-transparent -translate-x-1/2 z-0"></div>
               )}
-              
-              {/* Step Card */}
-              <div className="relative bg-gradient-to-br from-white via-white to-orange-50/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-stone-100 hover:border-orange-200 hover:-translate-y-1">
-                {/* Number Badge */}
-                <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold text-base sm:text-lg rounded-full mb-3 sm:mb-4 shadow-md">
-                  {step.number}
-                </div>
 
-                {/* Icon */}
-                <div className="text-orange-600 mb-3 sm:mb-4">
-                  {step.icon}
+              {/* Step Card */}
+              <div className="relative flex sm:flex-col items-start bg-gradient-to-br from-white via-white to-orange-50/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-stone-100 hover:border-orange-200 hover:-translate-y-1">
+                {/* Left column: badge + icon (mobile), stacked (desktop) */}
+                <div className="flex flex-col items-center shrink-0 mr-4 sm:mr-0 sm:flex-row sm:mb-4 gap-2 sm:gap-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold text-base sm:text-lg rounded-full shadow-md">
+                    {step.number}
+                  </div>
+                  <div className="text-orange-600">
+                    {step.icon}
+                  </div>
                 </div>
 
                 {/* Content */}
-                <h3 className="text-sm sm:text-xl font-bold text-stone-900 mb-1.5 sm:mb-3 leading-tight">
-                  {step.title}
-                </h3>
-                <p className="text-stone-600 text-xs leading-relaxed">
-                  {step.description}
-                </p>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-xl font-bold text-stone-900 mb-1 sm:mb-3 leading-snug">
+                    {step.title}
+                  </h3>
+                  <p className="text-stone-600 text-sm sm:text-xs leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
               </div>
             </div>
           ))}

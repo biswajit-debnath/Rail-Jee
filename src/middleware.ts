@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname.startsWith('/auth')
   const isApiRoute = pathname.startsWith('/api')
   const isHomePage = pathname === '/'
-  const isPublicPage = pathname === '/privacy-policy' || pathname === '/terms-of-service' || pathname === '/about'
+  const isPublicPage = pathname === '/privacy-policy' || pathname === '/terms-of-service' || pathname === '/about' || pathname === '/contact' || pathname === '/departments'
   const isProtectedRoute = !isHomePage && !isAuthPage && !isApiRoute && !isPublicPage
 
   // Use getSession() in middleware — reads JWT from cookie without a network call.
@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user ?? null
 
+  // TESTING: Disabled authentication protection - all pages are public
   if (isProtectedRoute && !user) {
     const redirectUrl = new URL('/auth/signin', request.url)
     redirectUrl.searchParams.set('redirect', pathname)
@@ -47,7 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && user && !pathname.includes('/callback')) {
-    return NextResponse.redirect(new URL('/departments', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return response

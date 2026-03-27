@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -27,9 +28,24 @@ interface ExamInstructionsProps {
     percentage: number;
     totalQuestions: number;
   } | null;
-  onStartExam: (mode: 'exam' | 'practice') => void;
+  onStartExam: (mode: 'live' | 'mock') => void;
   isStarting?: boolean;
 }
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} mins`;
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hrs} hr${hrs > 1 ? 's' : ''} ${mins} mins` : `${hrs} hr${hrs > 1 ? 's' : ''}`;
+}
+
+const DEFAULT_INSTRUCTIONS = [
+  'This paper is objective type with one correct answer for each question.',
+  '1 mark is awarded for each correct answer and 0.33 mark is deducted for each wrong answer.',
+  'In case of any discrepancy between Hindi and English versions, the English version shall prevail.',
+  'No marks will be awarded or deducted for unattempted questions.',
+  'Once submitted, an answer cannot be modified.',
+];
 
 export default function ExamInstructions({
   exam,
@@ -41,15 +57,32 @@ export default function ExamInstructions({
   isStarting = false
 }: ExamInstructionsProps) {
   const router = useRouter();
-  const [selectedMode, setSelectedMode] = useState<'exam' | 'practice' | null>(null);
-  const [user, setUser] = useState<any>(null);
+  // Pre-select exam mode as the default to reduce friction
+  const [selectedMode, setSelectedMode] = useState<'live' | 'mock'>('live');
+  const [user, setUser] = useState<User | null>(null);
 
+  // Subscribe to auth state changes so the UserMenu stays in sync
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
+    // Get initial user
+    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    // Keep in sync for token refreshes / sign-outs
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
+    return () => subscription.unsubscribe();
   }, []);
+
+  const handleStartExam = useCallback(() => {
+    onStartExam(selectedMode);
+  }, [onStartExam, selectedMode]);
+
+  const instructions = useMemo(
+    () => exam.instructions && exam.instructions.length > 0 ? exam.instructions : DEFAULT_INSTRUCTIONS,
+    [exam.instructions]
+  );
+
+  const durationLabel = useMemo(() => formatDuration(exam.duration), [exam.duration]);
 
   return (
     <div className="min-h-screen bg-[#faf9f7] flex flex-col">
@@ -58,7 +91,7 @@ export default function ExamInstructions({
         <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between">
           <button 
             onClick={() => router.back()}
-            className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors flex items-center justify-center"
+            className="-ml-1.5 p-1.5 hover:bg-stone-100 rounded-lg transition-colors flex items-center justify-center"
           >
             <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -70,7 +103,7 @@ export default function ExamInstructions({
               <img
                 src="/images/logo.png"
                 alt="RailJee Logo"
-                className="h-8 sm:h-10 w-auto"
+                className="h-7 sm:h-10 w-auto"
               />
             </Link>
           </div>
@@ -130,12 +163,7 @@ export default function ExamInstructions({
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-base sm:text-lg lg:text-xl font-bold text-stone-900">
-                  {exam.duration >= 60 
-                    ? `${Math.floor(exam.duration / 60)} hr${Math.floor(exam.duration / 60) > 1 ? 's' : ''}${exam.duration % 60 > 0 ? ` ${exam.duration % 60} mins` : ''}`
-                    : `${exam.duration} mins`
-                  }
-                </div>
+                <div className="text-base sm:text-lg lg:text-xl font-bold text-stone-900">{durationLabel}</div>
                 <div className="text-xxs sm:text-xs lg:text-sm text-stone-500">Total Duration</div>
               </div>
             </div>
@@ -206,37 +234,14 @@ export default function ExamInstructions({
               Important Instructions
             </h2>
             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm lg:text-base text-stone-600">
-              {exam.instructions?.map((instruction, index) => (
+              {instructions.map((instruction, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center mt-0.5">
                     {index + 1}
                   </span>
                   <span>{instruction}</span>
                 </li>
-              )) || (
-                <>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center mt-0.5">1</span>
-                    <span>This paper is objective type with one correct answer for each question.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center mt-0.5">2</span>
-                    <span>1 mark is awarded for each correct answer and 0.33 mark is deducted for each wrong answer.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center mt-0.5">3</span>
-                    <span>In case of any discrepancy between Hindi and English versions, the English version shall prevail.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center mt-0.5">4</span>
-                    <span>No marks will be awarded or deducted for unattempted questions.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center mt-0.5">5</span>
-                    <span>Once submitted, an answer cannot be modified.</span>
-                  </li>
-                </>
-              )}
+              ))}
             </ul>
           </div>
 
@@ -250,28 +255,30 @@ export default function ExamInstructions({
             </h2>
             <p className="text-xs sm:text-sm text-stone-600 mb-4">Choose how you want to take this test</p>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" role="radiogroup" aria-label="Test mode">
               {/* Exam Mode */}
               <button
-                onClick={() => setSelectedMode('exam')}
+                onClick={() => setSelectedMode('live')}
+                role="radio"
+                aria-checked={selectedMode === 'live'}
                 className={`group relative overflow-hidden rounded-xl p-4 sm:p-5 text-left transition-all duration-300 border-2 ${
-                  selectedMode === 'exam'
+                  selectedMode === 'live'
                     ? 'border-blue-500 bg-blue-50 shadow-lg scale-[1.02]'
                     : 'border-stone-200 bg-white hover:border-blue-300 hover:shadow-md'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                    selectedMode === 'exam' ? 'bg-blue-500' : 'bg-blue-100 group-hover:bg-blue-200'
+                    selectedMode === 'live' ? 'bg-blue-500' : 'bg-blue-100 group-hover:bg-blue-200'
                   }`}>
-                    <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedMode === 'exam' ? 'text-white' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedMode === 'live' ? 'text-white' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base sm:text-lg font-bold text-stone-900 mb-1 flex items-center gap-2">
                       Exam Mode
-                      {selectedMode === 'exam' && (
+                      {selectedMode === 'live' && (
                         <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
                       )}
                     </h3>
@@ -282,27 +289,29 @@ export default function ExamInstructions({
                 </div>
               </button>
 
-              {/* Practice Mode */}
+              {/* Mock Mode */}
               <button
-                onClick={() => setSelectedMode('practice')}
+                onClick={() => setSelectedMode('mock')}
+                role="radio"
+                aria-checked={selectedMode === 'mock'}
                 className={`group relative overflow-hidden rounded-xl p-4 sm:p-5 text-left transition-all duration-300 border-2 ${
-                  selectedMode === 'practice'
+                  selectedMode === 'mock'
                     ? 'border-orange-500 bg-orange-50 shadow-lg scale-[1.02]'
                     : 'border-stone-200 bg-white hover:border-orange-300 hover:shadow-md'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                    selectedMode === 'practice' ? 'bg-orange-500' : 'bg-orange-100 group-hover:bg-orange-200'
+                    selectedMode === 'mock' ? 'bg-orange-500' : 'bg-orange-100 group-hover:bg-orange-200'
                   }`}>
-                    <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedMode === 'practice' ? 'text-white' : 'text-orange-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedMode === 'mock' ? 'text-white' : 'text-orange-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base sm:text-lg font-bold text-stone-900 mb-1 flex items-center gap-2">
                       Practice Mode
-                      {selectedMode === 'practice' && (
+                      {selectedMode === 'mock' && (
                         <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
                       )}
                     </h3>
@@ -317,14 +326,14 @@ export default function ExamInstructions({
 
           {/* Start Button */}
           <button
-            onClick={() => selectedMode && onStartExam(selectedMode)}
-            disabled={questionsLoading || !selectedMode || isStarting}
+            onClick={handleStartExam}
+            disabled={questionsLoading || isStarting}
             className={`w-full py-3 sm:py-3.5 lg:py-4 bg-gradient-to-r ${
-              selectedMode === 'practice' 
+              selectedMode === 'mock' 
                 ? 'from-orange-600 to-orange-500' 
                 : 'from-blue-600 to-indigo-600'
             } text-white rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg transition-all ${
-              questionsLoading || !selectedMode || isStarting
+              questionsLoading || isStarting
                 ? 'opacity-50 cursor-not-allowed' 
                 : 'hover:scale-[1.02] hover:shadow-xl'
             } flex items-center justify-center gap-2`}
@@ -335,14 +344,12 @@ export default function ExamInstructions({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Starting {selectedMode === 'exam' ? 'Exam' : 'Practice'}...</span>
+                <span>Starting {selectedMode === 'live' ? 'Exam' : 'Practice'}...</span>
               </>
             ) : questionsLoading ? (
               'Preparing Questions...'
-            ) : !selectedMode ? (
-              'Select a Mode to Continue'
             ) : (
-              `Start ${selectedMode === 'exam' ? 'Exam' : 'Practice'}`
+              `Start ${selectedMode === 'live' ? 'Exam' : 'Practice'}`
             )}
           </button>
         </div>

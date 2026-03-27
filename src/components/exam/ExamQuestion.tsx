@@ -51,7 +51,7 @@ export default function ExamQuestion({
       {/* Question Card */}
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col h-full">
         {/* Question Header with Flag Button - Sticky */}
-        <div className={`sticky top-0 z-10 px-3 sm:px-4 lg:px-5 py-3 sm:py-3.5 lg:py-4 text-white ${
+        <div className={`sticky top-0 z-10 px-3 sm:px-4 lg:px-5 py-4 text-white ${
           showFeedback
             ? selectedAnswer === actualCorrectAnswer
               ? 'bg-gradient-to-r from-green-500 to-emerald-500'
@@ -128,12 +128,8 @@ export default function ExamQuestion({
         {/* Details Section - Collapsible & Compact */}
         {question.details && question.details.length > 0 && (
           <div className="border-b border-blue-100">
-            {/* Collapsible Header */}
-            
-            
             {/* Details Content - Compact Grid */}
-            {(
-              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-b from-blue-50/30 to-transparent">
+            <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-b from-blue-50/30 to-transparent">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 sm:gap-2">
                   {question.details.map((detail, index) => (
                     <div 
@@ -160,7 +156,6 @@ export default function ExamQuestion({
                   ))}
                 </div>
               </div>
-            )}
           </div>
         )}
 

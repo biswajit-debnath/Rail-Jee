@@ -1,11 +1,14 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { API_ENDPOINTS } from '@/lib/apiConfig';
 import { ExamMode } from '@/lib/examTypes';
 import { getExamAttemptCount, getBestScore } from '@/lib/examStorage';
 import { useExamTimer, useExamData, useExamState, useExamSubmission } from '@/hooks';
+import { useNavigation } from '@/components/NavigationProvider';
+import { createClient, getSupabaseAccessToken } from '@/lib/supabase/client';
+import { emitExternalApiError } from '@/lib/externalApiError';
 import LoadingScreen from './LoadingScreen';
 import ErrorScreen from './common/ErrorScreen';
 import ExamInstructions from './exam/ExamInstructions';
@@ -35,6 +38,8 @@ interface ExamPageClientProps {
 
 export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { navigate } = useNavigation();
   const deptSlugFromUrl = searchParams.get('dept');
 
   // Core state
@@ -46,11 +51,17 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   const [practiceAnswers, setPracticeAnswers] = useState<Map<number, number>>(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Refs for scroll management
-  const contentContainerRef = useRef<HTMLDivElement>(null);
-  const questionWrapperRef = useRef<HTMLDivElement>(null);
+  // Ref to allow navigation during submission without triggering beforeunload warning
   const isSubmittingRef = useRef(false);
+
+  // Refs so the beforeunload/popstate closure always reads the latest values
+  // without those values being in the effect dependency array (which would
+  // cause pushState to fire on every timer tick — flooding browser history).
+  const timeRemainingRef = useRef(0);
+  const answersRef = useRef<(number | null)[]>([]);
+  const markedForReviewRef = useRef<boolean[]>([]);
 
   // Fetch exam data
   const {
@@ -76,8 +87,6 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
   // Submission
   const submission = useExamSubmission({
-    examId: exam?.id || '',
-    examTitle: exam?.name || '',
     initialTime: exam ? exam.duration * 60 : 0,
     markingScheme: {
       correct: 1,
@@ -86,20 +95,20 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     }
   });
 
+  // Keep userId in sync with auth state
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Scroll to top when question changes
   useEffect(() => {
     if (hasStarted) {
       window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      
-      if (contentContainerRef.current) {
-        contentContainerRef.current.scrollTop = 0;
-      }
-      
-      if (questionWrapperRef.current) {
-        questionWrapperRef.current.scrollTop = 0;
-      }
     }
   }, [examState.currentIndex, hasStarted]);
 
@@ -108,14 +117,14 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     const pendingRaw = sessionStorage.getItem(PENDING_SUBMISSION_KEY);
     if (!pendingRaw) return;
 
-    // Remove immediately to prevent re-processing
-    sessionStorage.removeItem(PENDING_SUBMISSION_KEY);
-
     try {
       const pending: PendingSubmission = JSON.parse(pendingRaw);
 
       // Only process if it matches the current exam
       if (pending.examId !== examId) return;
+
+      // Remove immediately to prevent re-processing once we're ready to submit
+      sessionStorage.removeItem(PENDING_SUBMISSION_KEY);
 
       // Auto-submit the exam
       setIsSubmitting(true);
@@ -129,18 +138,24 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         isFlagged: pending.markedForReview[index] || false,
       }));
 
-      fetch(API_ENDPOINTS.SUBMIT_EXAM, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          examId: pending.activeExamId,
-          userId: 'pramoduser',
-          paperId: pending.paperId,
-          departmentId: pending.departmentId,
-          attemptedQuestions: attempted,
-          unattemptedQuestions: unattempted,
-          responses,
-        }),
+      getSupabaseAccessToken().then(accessToken => {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (accessToken) {
+          headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        
+        return fetch(API_ENDPOINTS.SUBMIT_EXAM, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            examId: pending.activeExamId,
+            paperId: pending.paperId,
+            departmentId: pending.departmentId,
+            attemptedQuestions: attempted,
+            unattemptedQuestions: unattempted,
+            responses,
+          }),
+        });
       })
         .then((res) => {
           if (!res.ok) throw new Error('Submit failed');
@@ -148,7 +163,8 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         })
         .then((data) => {
           if (data.success && data.data?.examId) {
-            window.location.href = `/exam/result/${data.data.examId}`;
+            isSubmittingRef.current = true;
+            navigate(`/exam/result/${data.data.examId}`);
           } else {
             throw new Error('Invalid submit response');
           }
@@ -156,18 +172,30 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         .catch((err) => {
           console.error('Error auto-submitting exam after reload:', err);
           setIsSubmitting(false);
-          alert('Failed to submit exam after reload. Please try again.');
+          emitExternalApiError();
         });
     } catch (err) {
       console.error('Error parsing pending submission:', err);
+      sessionStorage.removeItem(PENDING_SUBMISSION_KEY);
     }
-  }, [examId]);
+  }, [examId, userId, navigate]);
 
-  // Prevent accidental navigation during exam
+  // Keep refs in sync with the latest volatile values (no re-renders, no effect deps)
+  useEffect(() => { timeRemainingRef.current = timer.timeRemaining; }, [timer.timeRemaining]);
+  useEffect(() => { answersRef.current = examState.answers; }, [examState.answers]);
+  useEffect(() => { markedForReviewRef.current = examState.markedForReview; }, [examState.markedForReview]);
+
+  // Prevent accidental navigation during exam.
+  // IMPORTANT: this effect must NOT depend on timer.timeRemaining, examState.answers,
+  // or examState.markedForReview — those change constantly and would cause
+  // window.history.pushState to be called on every tick, flooding the browser
+  // history and breaking post-submit navigation back to the result page.
   useEffect(() => {
     if (!hasStarted) return;
 
     const handlePopState = (e: PopStateEvent) => {
+      // Don't intercept navigation that is part of a deliberate exam submission.
+      if (isSubmittingRef.current) return;
       e.preventDefault();
       window.history.pushState(null, '', window.location.href);
       setShowSubmitConfirm(true);
@@ -186,9 +214,9 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           activeExamId,
           paperId: exam.paperId,
           departmentId: exam.departmentId,
-          answers: examState.answers,
-          markedForReview: examState.markedForReview,
-          timeRemaining: timer.timeRemaining,
+          answers: answersRef.current,
+          markedForReview: markedForReviewRef.current,
+          timeRemaining: timeRemainingRef.current,
           questionIds: questions.map((q) => q.id),
           totalQuestions: questions.length,
         };
@@ -211,7 +239,8 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [hasStarted, exam, activeExamId, questions, examState.answers, examState.markedForReview, timer.timeRemaining, examId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasStarted, exam, activeExamId, questions, examId]);
 
   // Handlers
   async function handleStartExam(mode: ExamMode) {
@@ -220,16 +249,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     
     try {
       let examQuestions = questions;
-      
-      // Check if questions are already prefetched or loaded
-      if (questionsPrefetched && questions.length === 0) {
-        // Questions are prefetched but not in state yet, load them
-        examQuestions = await loadQuestions();
-      } else if (questions.length > 0) {
-        // Questions already in state, use them
-        examQuestions = questions;
-      } else {
-        // Questions not available, need to fetch
+      if (questions.length === 0) {
         examQuestions = await loadQuestions();
       }
       
@@ -242,19 +262,24 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       setHasStarted(true);
       
       // Track exam start in background (non-blocking)
-      if (exam?.paperId && exam?.departmentId) {
-        const userId = 'pramoduser';
-        
-        fetch(API_ENDPOINTS.START_EXAM, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            paperId: exam.paperId,
-            departmentId: exam.departmentId,
-          }),
+      if (exam?.paperId && exam?.departmentId && userId) {
+       getSupabaseAccessToken().then(accessToken => {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          return fetch(API_ENDPOINTS.START_EXAM, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              paperId: exam.paperId,
+              departmentId: exam.departmentId,
+              examMode:mode,
+            }),
+          });
         }).then(response => {
-          if (response.ok) {
+          if (response && response.ok) {
             return response.json();
           }
         }).then(startData => {
@@ -264,10 +289,12 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         }).catch(err => {
           console.error('Error tracking exam start:', err);
         });
+      } else if (exam?.paperId && exam?.departmentId && !userId) {
+        console.warn('Skipping exam start tracking due to missing user id.');
       }
       
       // Fetch practice answers in background if needed
-      if (mode === 'practice') {
+      if (mode === 'mock') {
         fetchPracticeAnswers().then(answers => {
           if (answers) {
             setPracticeAnswers(answers);
@@ -278,7 +305,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       }
     } catch (err) {
       console.error('Error starting exam:', err);
-      alert('Failed to start exam. Please try again.');
+      emitExternalApiError();
     } finally {
       setIsStarting(false);
     }
@@ -296,6 +323,12 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
     // Submit to API
     if (exam && activeExamId) {
       try {
+        if (!userId) {
+          alert('Please sign in to submit your exam.');
+          setShowSubmitConfirm(false);
+          return;
+        }
+
         setIsSubmitting(true); // Set loading state
         
         const responses = questions.map((question, index) => ({
@@ -304,12 +337,17 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           isFlagged: examState.markedForReview[index] || false
         }));
         
+        const accessToken = await getSupabaseAccessToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (accessToken) {
+          headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        
         const submitResponse = await fetch(API_ENDPOINTS.SUBMIT_EXAM, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             examId: activeExamId,
-            userId: 'pramoduser',
             paperId: exam.paperId,
             departmentId: exam.departmentId,
             attemptedQuestions: result.totalQuestions - result.skippedQuestions,
@@ -324,8 +362,11 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
             // Set flag to allow navigation without warning
             isSubmittingRef.current = true;
             
-            // Navigate to result page with examId
-            window.location.href = `/exam/result/${submitData.data.examId}`;
+            // Close the overlay immediately so the train loading screen
+            // from NavigationProvider takes over while the result page loads.
+            setShowSubmitConfirm(false);
+            setIsSubmitting(false);
+            navigate(`/exam/result/${submitData.data.examId}`);
             return;
           }
         }
@@ -335,7 +376,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       } catch (err) {
         console.error('Error submitting exam:', err);
         setIsSubmitting(false); // Reset loading state on error
-        alert('Failed to submit exam. Please try again.');
+        emitExternalApiError();
         setShowSubmitConfirm(false);
         return;
       }
@@ -343,12 +384,12 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
     // If exam or activeExamId is missing, show error
     setIsSubmitting(false); // Reset loading state
-    alert('Unable to submit exam. Please try again.');
+    emitExternalApiError();
     setShowSubmitConfirm(false);
   }
 
   function handleSelectAnswer(optionIndex: number) {
-    examState.selectAnswer(optionIndex, examMode === 'practice');
+    examState.selectAnswer(optionIndex, examMode === 'mock');
   }
 
   function handleNextQuestion() {
@@ -387,13 +428,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
   }
 
   if (error) {
-    return (
-      <ErrorScreen
-        title="Error Loading Exam"
-        message={error}
-        onRetry={() => window.location.reload()}
-      />
-    );
+    return <div className="min-h-screen bg-[#faf9f7]" />;
   }
 
   if (!exam) {
@@ -426,7 +461,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
 
   // Active exam
   const currentQuestion = questions[examState.currentIndex];
-  const isPracticeMode = examMode === 'practice';
+  const isPracticeMode = examMode === 'mock';
   const isLocked = isPracticeMode && examState.lockedQuestions[examState.currentIndex];
   const correctAnswer = isPracticeMode && isLocked ? practiceAnswers.get(currentQuestion.id) : undefined;
 
@@ -444,9 +479,9 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex justify-center" ref={contentContainerRef}>
+      <div className="flex-1 flex justify-center">
         <div className="w-full max-w-5xl p-3 sm:p-4 lg:p-6">
-          <div className="w-full" ref={questionWrapperRef}>
+          <div className="w-full">
             {/* Question */}
             <div className="mb-3 sm:mb-4">
               <ExamQuestion
@@ -482,7 +517,6 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
         <SubmitConfirmation
           totalQuestions={exam.totalQuestions}
           answeredCount={examState.answeredCount}
-          visitedCount={examState.visitedQuestions.size}
           skippedCount={examState.skippedCount}
           markedCount={examState.markedCount}
           answers={examState.answers}

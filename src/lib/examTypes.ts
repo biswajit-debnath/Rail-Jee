@@ -1,15 +1,8 @@
 // Common types for exam functionality
 
-export type ExamMode = 'exam' | 'practice';
+export type ExamMode = 'live' | 'mock';
 export type ReviewFilter = 'all' | 'correct' | 'wrong' | 'skipped';
 
-export interface ExamProgress {
-  currentIndex: number;
-  answers: (number | null)[];
-  markedForReview: boolean[];
-  visitedQuestions: Set<number>;
-  lockedQuestions: boolean[];
-}
 
 export interface SubmissionResult {
   score: number;
@@ -79,12 +72,9 @@ export interface UseExamStateReturn {
   goToPreviousQuestion: () => boolean;
   toggleMarkForReview: () => void;
   saveCurrentAnswer: () => void;
-  getProgress: () => ExamProgress;
 }
 
 export interface UseExamSubmissionProps {
-  examId: string;
-  examTitle: string;
   initialTime: number;
   markingScheme: MarkingScheme;
 }
@@ -95,8 +85,6 @@ export interface UseExamSubmissionReturn {
     answers: (number | null)[],
     timeRemaining: number
   ) => SubmissionResult;
-  saveResultToStorage: (result: SubmissionResult) => Promise<void>;
-  getStoredResult: () => SubmissionResult | null;
 }
 
 // ============== Component Props ==============

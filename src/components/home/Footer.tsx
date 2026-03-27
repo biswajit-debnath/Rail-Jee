@@ -1,5 +1,15 @@
 import Link from 'next/link';
+import { FaInstagram, FaXTwitter, FaWhatsapp, FaFacebook, FaLinkedin } from 'react-icons/fa6';
+
 export default function Footer() {
+  const socialLinks = [
+    { name: 'Instagram', icon: FaInstagram, url: 'https://instagram.com', color: 'hover:text-pink-400' },
+    { name: 'X', icon: FaXTwitter, url: 'https://x.com', color: 'hover:text-gray-300' },
+    { name: 'WhatsApp', icon: FaWhatsapp, url: 'https://whatsapp.com', color: 'hover:text-green-400' },
+    { name: 'Facebook', icon: FaFacebook, url: 'https://facebook.com', color: 'hover:text-blue-400' },
+    { name: 'LinkedIn', icon: FaLinkedin, url: 'https://linkedin.com', color: 'hover:text-blue-300' },
+  ];
+
   return (
     <footer className="bg-stone-900 text-white py-10 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -11,13 +21,33 @@ export default function Footer() {
                 <img
                   src="/images/logo.png"
                   alt="RailJee Logo"
-                  className="h-12 sm:h-14 w-auto transition-transform group-hover:scale-105"
+                  className="h-7 sm:h-10 w-auto transition-transform group-hover:scale-105"
                 />
               </Link>
             </div>
             <p className="text-stone-400 text-xs sm:text-sm leading-relaxed">
-              Your trusted platform for railway exam preparation. Join thousands of successful candidates.
+              Your trusted platform for railway promotional exams. Helping railway professionals prepare with confidence.
             </p>
+            
+            {/* Social Media Links */}
+            <div className="flex items-center space-x-4 mt-6">
+              {socialLinks.map((social) => {
+                const IconComponent = social.icon;
+                return (
+                  <a
+                    key={social.name}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`text-stone-400 transition-colors duration-200 ${social.color}`}
+                    aria-label={social.name}
+                    title={social.name}
+                  >
+                    <IconComponent className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
           
           {/* Departments */}
@@ -25,29 +55,29 @@ export default function Footer() {
             <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider mb-3 sm:mb-6">Departments</h3>
             <ul className="space-y-2 sm:space-y-4 text-stone-400">
               <li><Link href="/departments" className="hover:text-white transition-colors text-xs sm:text-sm">All Departments</Link></li>
-              <li><Link href="/departments#civil" className="hover:text-white transition-colors text-xs sm:text-sm">Civil</Link></li>
-              <li><Link href="/departments#mechanical" className="hover:text-white transition-colors text-xs sm:text-sm">Mechanical</Link></li>
-              <li><Link href="/departments#electrical" className="hover:text-white transition-colors text-xs sm:text-sm">Electrical</Link></li>
+              <li><Link href="/departments/civil-engineering" className="hover:text-white transition-colors text-xs sm:text-sm">Civil</Link></li>
+              <li><Link href="/departments/mechanical" className="hover:text-white transition-colors text-xs sm:text-sm">Mechanical</Link></li>
+              <li><Link href="/departments/electrical" className="hover:text-white transition-colors text-xs sm:text-sm">Electrical</Link></li>
             </ul>
           </div>
           
           {/* Quick Links */}
-          <div>
+          {/* <div>
             <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider mb-3 sm:mb-6">Quick Links</h3>
             <ul className="space-y-2 sm:space-y-4 text-stone-400">
               <li><Link href="/#exams" className="hover:text-white transition-colors text-xs sm:text-sm">Practice Tests</Link></li>
-              <li><Link href="/stats" className="hover:text-white transition-colors text-xs sm:text-sm">My Statistics</Link></li>
+              <li><Link href="/stats" className="hover:text-white transition-colors text-xs sm:text-sm">Your Statistics</Link></li>
               <li><Link href="/#features" className="hover:text-white transition-colors text-xs sm:text-sm">Features</Link></li>
               <li><Link href="/#about" className="hover:text-white transition-colors text-xs sm:text-sm">About</Link></li>
             </ul>
-          </div>
+          </div> */}
           
           {/* Company */}
           <div>
             <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider mb-3 sm:mb-6">Company</h3>
             <ul className="space-y-2 sm:space-y-4 text-stone-400">
               <li><Link href="/about" className="hover:text-white transition-colors text-xs sm:text-sm">About Us</Link></li>
-              <li><a href="#contact" className="hover:text-white transition-colors text-xs sm:text-sm">Contact</a></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors text-xs sm:text-sm">Contact Us</Link></li>
               <li><Link href="/privacy-policy" className="hover:text-white transition-colors text-xs sm:text-sm">Privacy Policy</Link></li>
               <li><Link href="/terms-of-service" className="hover:text-white transition-colors text-xs sm:text-sm">Terms of Service</Link></li>
             </ul>

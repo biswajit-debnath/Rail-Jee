@@ -100,9 +100,7 @@ export default function FilterSection({
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {/* Previous Year (Full Paper) Button */}
             <button
-              onClick={() => {
-                onFullPaperClick?.();
-              }}
+              onClick={onFullPaperClick}
               className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xxs sm:text-xs lg:text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                 paperTypeFilter === 'full'
                   ? 'bg-orange-500 text-white shadow-md'
@@ -174,7 +172,7 @@ export default function FilterSection({
                         }}
                         className={`w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xxs sm:text-xs hover:bg-orange-50 transition-colors ${
                           paperTypeFilter === 'sectional' && selectedPaperCode === type
-                            ? 'bg-orange-50 text-orange-700 font-medium'
+                            ? 'bg-orange-100 text-orange-700 font-medium'
                             : 'text-stone-700'
                         }`}
                       >
@@ -186,7 +184,7 @@ export default function FilterSection({
               </div>
             )}
 
-            {/* General Papers Dropdown - Pushed to the right */}
+            {/* General Papers Dropdown - Pushed to the right on sm+, new row left-aligned on mobile */}
             {allGeneralPapers.length > 0 && (
               <div className="relative ml-auto" ref={generalDropdownRef}>
                 <button
@@ -217,7 +215,7 @@ export default function FilterSection({
 
                 {/* General Papers Dropdown Menu */}
                 {showGeneralDropdown && (
-                  <div className="absolute top-full mt-1.5 right-0 bg-white rounded-lg sm:rounded-xl shadow-2xl border border-stone-200 py-1 sm:py-2 w-[140px] sm:w-[160px] lg:w-[180px] z-50 max-h-[250px] sm:max-h-[300px] overflow-y-auto">
+                  <div className="absolute top-full mt-1.5 left-0 sm:left-auto sm:right-0 bg-white rounded-lg sm:rounded-xl shadow-2xl border border-stone-200 py-1 sm:py-2 w-[140px] sm:w-[160px] lg:w-[180px] z-50 max-h-[250px] sm:max-h-[300px] overflow-y-auto">
                     {allGeneralPapers.map((paper) => (
                       <button
                         key={paper}
@@ -227,7 +225,7 @@ export default function FilterSection({
                         }}
                         className={`w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 text-xxs sm:text-xs hover:bg-amber-50 transition-colors ${
                           paperTypeFilter === 'general' && selectedPaperCode === paper
-                            ? 'bg-amber-50 text-amber-700 font-medium'
+                            ? 'bg-amber-100 text-amber-700 font-medium'
                             : 'text-stone-700'
                         }`}
                       >

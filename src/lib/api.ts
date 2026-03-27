@@ -1,13 +1,14 @@
 // API utilities for Rail-Jee
 import { API_ENDPOINTS } from './apiConfig';
+import { emitExternalApiError } from './externalApiError';
 
-export interface CreateUserPayload {
+export interface UserProfilePayload {
   supabaseId: string;
   email: string;
-  name: string;
+  username: string;
 }
 
-export async function createUser(payload: CreateUserPayload): Promise<{ success: boolean; error?: string }> {
+export async function syncUserProfile(payload: UserProfilePayload): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(API_ENDPOINTS.USERS, {
       method: 'POST',
@@ -17,11 +18,13 @@ export async function createUser(payload: CreateUserPayload): Promise<{ success:
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      emitExternalApiError();
       return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
     }
 
     return { success: true };
   } catch (error: any) {
+    emitExternalApiError();
     return { success: false, error: error.message || 'Failed to create user profile' };
   }
 }
@@ -95,6 +98,7 @@ export async function getTopPapers(limit: number = 6): Promise<TopPaper[]> {
     return [];
   } catch (error) {
     console.error('Error fetching top papers:', error);
+    emitExternalApiError();
     return [];
   }
 }
