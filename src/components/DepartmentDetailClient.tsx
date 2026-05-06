@@ -132,13 +132,23 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
         setError(null);
         setNotFound(false);
         
+        // Check if returning from payment
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentSuccess = urlParams.get('payment') === 'success';
+
+        // If payment just succeeded, clear cache to force fresh fetch
+        if (paymentSuccess) {
+          departmentCache.clear();
+          console.log('Payment success detected, cleared department cache');
+        }
+        
         // Determine the department ID to use
         let apiDeptId = externalDeptId;
         let currentDept: any = null;
         
-        // Try to get department from cache first
+        // Try to get department from cache first (unless payment just succeeded)
         if (!apiDeptId) {
-          const cachedDept = departmentCache.findDepartment(slug);
+          const cachedDept = !paymentSuccess ? departmentCache.findDepartment(slug) : null;
           
           if (cachedDept) {
             // Found in cache, use it
@@ -146,7 +156,7 @@ export default function DepartmentDetailClient({ slug }: DepartmentDetailClientP
             currentDept = cachedDept;
             setExternalDeptId(apiDeptId);
           } else {
-            // Not in cache, fetch from API
+            // Not in cache or payment succeeded, fetch from API
             const deptsData = await apiFetch(API_ENDPOINTS.DEPARTMENTS, { signal });
             const departments = deptsData.data || [];
             
