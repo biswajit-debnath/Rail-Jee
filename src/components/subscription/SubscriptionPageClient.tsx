@@ -9,6 +9,7 @@ import { getDepartmentIcon } from '@/lib/departmentIcons';
 import { emitExternalApiError } from '@/lib/externalApiError';
 import { apiFetch } from '@/lib/apiUtil';
 import { createClient } from '@/lib/supabase/client';
+import { departmentCache } from '@/lib/departmentCache';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Plan {
@@ -248,16 +249,16 @@ export default function SubscriptionPageClient() {
       console.log(`Not authenticated, returning false for ${departmentId}`);
       return false;
     }
-    
+
     console.log(`Checking subscription for department: "${departmentId}"`);
     console.log('Available subscriptions:', userSubscriptions);
-    
+
     // Check if any subscription matches this department
     const hasSubscription = userSubscriptions.some(sub => {
       console.log(`Comparing sub.departmentId: "${sub.departmentId}" with "${departmentId}"`);
       return sub.departmentId === departmentId;
     });
-    
+
     console.log(`Result for ${departmentId}: ${hasSubscription}`);
     return hasSubscription;
   };
@@ -312,7 +313,18 @@ export default function SubscriptionPageClient() {
         handler: async function () {
           setPaymentSuccess(true);
           setSubscribing(false);
-          setTimeout(() => router.push('/departments?payment=success'), 3000);
+          
+          // Store purchased department ID for optimistic update
+          const purchasedDeptId = selectedDepartment?.id;
+          if (purchasedDeptId) {
+            sessionStorage.setItem('pending_subscription', purchasedDeptId);
+          }
+          
+          setTimeout(() => {
+            // Clear cache right before redirect to ensure fresh data fetch
+            departmentCache.clear();
+            router.push(`/departments?payment=success&dept=${purchasedDeptId || ''}`);
+          }, 3000);
         },
         modal: {
           ondismiss: function () { setSubscribing(false); },
@@ -362,7 +374,11 @@ export default function SubscriptionPageClient() {
           </div>
           <h2 className="text-2xl font-bold text-stone-900 mb-2">Payment Successful</h2>
           <p className="text-stone-600 mb-1">
-            Your payment for <span className="font-semibold text-stone-900">{selectedDepartment?.name}</span> has been received.
+            Your payment for{" "}
+            <span className="font-semibold text-stone-900">
+              {selectedDepartment?.name} Department
+            </span>{" "}
+            has been received.
           </p>
           <p className="text-sm text-stone-500 mb-5">Your subscription will activate within a few moments.</p>
           <div className="inline-flex items-center gap-2 text-sm text-orange-600 font-medium">
@@ -485,20 +501,18 @@ export default function SubscriptionPageClient() {
                       key={dept.id}
                       type="button"
                       onClick={() => setSelectedDepartmentId(dept.id)}
-                      className={`group relative rounded-2xl border p-3 sm:p-4 text-left transition-all duration-200 ${
-                        isActive
+                      className={`group relative rounded-2xl border p-3 sm:p-4 text-left transition-all duration-200 ${isActive
                           ? 'border-orange-400 bg-gradient-to-br from-orange-50 to-amber-50/40 shadow-[0_8px_24px_-8px_rgba(249,115,22,0.4)]'
                           : 'border-stone-200 bg-white hover:border-stone-300 hover:-translate-y-0.5 hover:shadow-md'
-                      }`}
+                        }`}
                     >
                       {isActive && (
                         <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center">
                           <Check className="w-3 h-3" />
                         </span>
                       )}
-                      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 transition-colors ${
-                        isActive ? 'bg-orange-500 text-white' : 'bg-stone-100 text-stone-700 group-hover:bg-stone-200'
-                      }`}>
+                      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 transition-colors ${isActive ? 'bg-orange-500 text-white' : 'bg-stone-100 text-stone-700 group-hover:bg-stone-200'
+                        }`}>
                         <div className="scale-90">{getDepartmentIcon(dept.id)}</div>
                       </div>
                       <div className="space-y-1">
@@ -543,11 +557,10 @@ export default function SubscriptionPageClient() {
                         key={plan.planId}
                         type="button"
                         onClick={() => setSelectedPlanId(plan.planId)}
-                        className={`group relative rounded-2xl border-2 p-5 pt-7 text-left transition-all duration-200 ${
-                          isActive
+                        className={`group relative rounded-2xl border-2 p-5 pt-7 text-left transition-all duration-200 ${isActive
                             ? 'border-orange-500 bg-gradient-to-br from-orange-50/80 to-white shadow-[0_12px_32px_-12px_rgba(249,115,22,0.5)] -translate-y-0.5'
                             : 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-md'
-                        }`}
+                          }`}
                       >
                         {isPopular && (
                           <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
