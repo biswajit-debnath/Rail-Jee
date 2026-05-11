@@ -17,12 +17,11 @@ export const API_ENDPOINTS = {
   SUBMIT_EXAM: `${API_BASE_URL}/business/v1/exams/submit`,
   EXAM_RESULT: (examId: string) => `${API_BASE_URL}/business/v1/exams/result/${examId}`,
   USERS: `${API_BASE_URL}/business/v1/users`,
+  USERS_ME: `${API_BASE_URL}/business/v1/users/me`,
 
-  // Stats API endpoints (future)
-  USER_STATS: (userId: string) => `${API_BASE_URL}/business/v1/stats/user/${userId}`,
-  USER_STATS_BY_DEPT: (userId: string, deptId: string) => `${API_BASE_URL}/business/v1/stats/user/${userId}?departmentId=${deptId}`,
-  USER_EXAM_ATTEMPTS: (userId: string) => `${API_BASE_URL}/business/v1/stats/user/${userId}/exams`,
-  USER_EXAM_ATTEMPTS_BY_DEPT: (userId: string, deptId: string) => `${API_BASE_URL}/business/v1/stats/user/${userId}/exams?departmentId=${deptId}`,
+  // Stats / History API endpoints
+  USER_EXAM_STATS: (userId: string) => `${API_BASE_URL}/business/v1/exams/stats/${userId}`,
+  USER_EXAM_HISTORY: (userId: string, qs: string = '') => `${API_BASE_URL}/business/v1/exams/history/${userId}${qs}`,
 
   // Payment Plans API
   PAYMENT_PLANS: `${API_BASE_URL}/business/v1/payments/plans`,
