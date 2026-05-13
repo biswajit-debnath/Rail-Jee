@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useNavigation } from '@/components/NavigationProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -13,7 +13,7 @@ interface NavbarProps {
   title?: string;
   subtitle?: string;
   backHref?: string;
-  statsInfo?: string;
+  statsInfo?: ReactNode;
   paperName?: string;
   ctaLabel?: string;
   ctaHref?: string;
@@ -94,40 +94,44 @@ export default function Navbar({
     );
   }
 
-  // Stats variant - Simple header with back button and stats info
+  // Stats variant - Consistent header with back button, logo, and stats info
   if (variant === 'stats') {
     return (
-      <header className="bg-white border-b border-stone-100 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-              onClick={() => navigate(backHref)}
-                className="p-2 hover:bg-stone-100 rounded-xl transition-colors"
-              >
-                <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      <header className="bg-[#FDF6E3]/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EDE4D3]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+            <Link href={backHref} className="flex items-center gap-2 sm:gap-3 group min-w-0">
+              <button className="p-1.5 sm:p-2 hover:bg-stone-100 rounded-lg sm:rounded-xl transition-all flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
-              <div>
-                <h1 className="text-lg font-bold text-stone-900">
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-md font-bold text-stone-900 truncate">
                   {title || 'My Statistics'}
                 </h1>
-                <p className="text-xs text-stone-500">
+                <p className="text-xxs sm:text-xs text-stone-500 hidden sm:block truncate">
                   {subtitle || 'Track your exam performance'}
                 </p>
               </div>
-            </div>
+            </Link>
             <div className="flex items-center gap-2 sm:gap-3">
               {statsInfo && (
-                <span className="text-xs text-stone-500 hidden sm:block">
+                <div className="hidden md:flex items-center gap-2 text-xs text-stone-500">
                   {statsInfo}
-                </span>
+                </div>
               )}
               {user && <UserMenu user={user} navItems={[
                 { name: 'Home', href: '/' },
                 { name: 'Departments', href: '/departments' },
               ]} />}
+              <Link href="/" className="transition-transform hover:scale-105">
+                <img
+                  src="/images/logo.png"
+                  alt="RailJee Logo"
+                  className="h-7 sm:h-10 w-auto"
+                />
+              </Link>
             </div>
           </div>
         </div>
