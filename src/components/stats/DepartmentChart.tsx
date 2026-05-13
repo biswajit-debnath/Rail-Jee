@@ -86,7 +86,7 @@ export function DepartmentChart({ departments }: Props) {
                   boxShadow: "var(--shadow-card)",
                   fontSize: 12,
                 }}
-                formatter={(v: number) => `${v.toFixed(1)}%`}
+                formatter={(v) => typeof v === 'number' ? `${v.toFixed(1)}%` : ''}
               />
               <Legend
                 iconType="circle"
