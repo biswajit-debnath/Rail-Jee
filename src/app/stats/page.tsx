@@ -360,7 +360,8 @@ function InsightCard({
 }: { stats: UserExamStats; history: ExamHistoryRecord[] }) {
   const insights = useMemo(() => {
     const items: { label: string; value: string; tone: "good" | "bad" | "neutral" }[] = [];
-    const ranked = [...(stats.allDepartments ?? stats.departmentExams ?? [])]
+    const allDepts = stats?.allDepartments ?? stats?.departmentExams ?? [];
+    const ranked = [...(Array.isArray(allDepts) ? allDepts : [])]
       .sort((a, b) => num(b.averageAccuracy) - num(a.averageAccuracy));
     if (ranked.length > 0) {
       const best = ranked[0];
@@ -382,10 +383,11 @@ function InsightCard({
       const latest = [...history].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )[0];
+      const paperName = latest.paperName || latest.paperCode || "Unknown Paper";
       items.push({
         label: "Latest attempt",
         value: `${latest.percentage.toFixed(1)}% on ${
-          latest.paperName.length > 32 ? latest.paperName.slice(0, 32) + "..." : latest.paperName
+          paperName.length > 32 ? paperName.slice(0, 32) + "..." : paperName
         }`,
         tone: latest.isPassed ? "good" : "neutral",
       });
