@@ -1,14 +1,6 @@
 // src/lib/stats-api.ts
-// RailJee Stats API client (Next.js / production).
-//
-// IMPORTANT: This module no longer reads credentials from localStorage.
-// The caller (stats page) MUST pass a fresh Supabase access token + business
-// userId on every request. This guarantees we always use a non-expired token
-// and works with the project's existing auth flow.
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_RAILJEE_BUSINESS_API ??
-  "https://railji-business.onrender.com/business/v1";
+import API_ENDPOINTS from "./apiConfig";
+import { apiFetch } from "./apiUtil";
 
 // ---------- Types ----------
 export interface PaperCodeStats {
@@ -76,43 +68,7 @@ export interface ExamHistoryRecord {
   createdAt: string;
 }
 
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-}
-
 export const GENERAL_DEPT_ID = "general";
-
-export interface AuthCreds {
-  token: string;
-  userId: string;
-  /** Optional AbortSignal — wire React Query / unmount cancellation here. */
-  signal?: AbortSignal;
-}
-
-// ---------- HTTP ----------
-async function apiGet<T>(path: string, creds: AuthCreds): Promise<T> {
-  if (!creds?.token) throw new Error("Not signed in");
-  if (!creds?.userId) throw new Error("Missing business user id");
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      accept: "*/*",
-      authorization: `Bearer ${creds.token}`,
-    },
-    signal: creds.signal,
-    cache: "no-store",
-  });
-
-  if (res.status === 401 || res.status === 403) {
-    throw new Error("Your session has expired. Please sign in again.");
-  }
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${text || res.statusText}`);
-  }
-  return (await res.json()) as T;
-}
 
 // ---------- Synthetic "General" department ----------
 function buildGeneralDepartment(
@@ -175,12 +131,12 @@ function buildGeneralDepartment(
 }
 
 // ---------- Public API ----------
-export async function fetchUserStats(creds: AuthCreds): Promise<UserExamStats> {
-  const r = await apiGet<ApiEnvelope<Omit<UserExamStats, "allDepartments">>>(
-    `/exams/stats/${creds.userId}`,
-    creds,
-  );
-  const data = r.data ?? ({} as UserExamStats);
+export async function fetchUserStats(userId: string): Promise<UserExamStats> {
+  const response = await apiFetch(API_ENDPOINTS.USER_EXAM_STATS(userId), {
+    requireAuth: true,
+  });
+  
+  const data = response.data ?? ({} as UserExamStats);
   const departmentExams = Array.isArray(data.departmentExams)
     ? data.departmentExams
     : [];
@@ -191,6 +147,7 @@ export async function fetchUserStats(creds: AuthCreds): Promise<UserExamStats> {
   const allDepartments = general
     ? [...departmentExams, general]
     : [...departmentExams];
+  
   return {
     totalExams: data.totalExams ?? 0,
     totalDepartments: data.totalDepartments ?? departmentExams.length,
@@ -200,15 +157,18 @@ export async function fetchUserStats(creds: AuthCreds): Promise<UserExamStats> {
   };
 }
 
-export async function fetchExamHistory(creds: AuthCreds, limit = 20) {
-  const r = await apiGet<
-    ApiEnvelope<{ exams: ExamHistoryRecord[]; total: number }>
-  >(`/exams/history/${creds.userId}?limit=${limit}`, creds);
-  const exams = (r.data?.exams ?? []).map((e) => ({
+export async function fetchExamHistory(userId: string, limit = 20) {
+  const response = await apiFetch(
+    API_ENDPOINTS.USER_EXAM_HISTORY(userId, `?limit=${limit}`),
+    { requireAuth: true }
+  );
+  
+  const exams = (response.data?.exams ?? []).map((e: ExamHistoryRecord) => ({
     ...e,
     departmentId: e.paperType === "general" ? GENERAL_DEPT_ID : e.departmentId,
   }));
-  return { exams, total: r.data?.total ?? exams.length };
+  
+  return { exams, total: response.data?.total ?? exams.length };
 }
 
 // ---------- Helpers ----------
