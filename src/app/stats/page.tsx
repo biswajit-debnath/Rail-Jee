@@ -383,10 +383,11 @@ function InsightCard({
       const latest = [...history].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )[0];
+      const paperName = latest.paperName || latest.paperCode || "Unknown Paper";
       items.push({
         label: "Latest attempt",
         value: `${latest.percentage.toFixed(1)}% on ${
-          latest.paperName.length > 32 ? latest.paperName.slice(0, 32) + "..." : latest.paperName
+          paperName.length > 32 ? paperName.slice(0, 32) + "..." : paperName
         }`,
         tone: latest.isPassed ? "good" : "neutral",
       });
