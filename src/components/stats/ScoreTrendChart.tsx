@@ -92,7 +92,7 @@ export function ScoreTrendChart({ exams }: Props) {
                   boxShadow: "var(--shadow-card)",
                   fontSize: 12,
                 }}
-                formatter={(v: number, name) => [`${v.toFixed(2)}%`, name]}
+                formatter={(v, name) => [typeof v === 'number' ? `${v.toFixed(2)}%` : '', name]}
                 labelFormatter={(l, payload) => {
                   const p = payload?.[0]?.payload as { paper?: string };
                   return p?.paper ? `${l} · ${p.paper}` : l;
