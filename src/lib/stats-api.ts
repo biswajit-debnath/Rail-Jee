@@ -7,7 +7,7 @@
 // and works with the project's existing auth flow.
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_RAILJEE_BUSINESS_API ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
   "https://railji-business.onrender.com/business/v1";
 
 // ---------- Types ----------
