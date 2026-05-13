@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText,
@@ -101,37 +101,29 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     if (auth.status !== "ready") return;
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
 
     setLoading(true);
     setError(null);
     try {
-      const creds = { token: auth.token, userId: auth.userId, signal: ctrl.signal };
       const [s, h] = await Promise.all([
-        fetchUserStats(creds),
-        fetchExamHistory(creds, HISTORY_LIMIT),
+        fetchUserStats(auth.userId),
+        fetchExamHistory(auth.userId, HISTORY_LIMIT),
       ]);
-      if (ctrl.signal.aborted) return;
       setStats(s);
       setHistory(h.exams);
       setHistoryTotal(h.total);
     } catch (e) {
-      if ((e as { name?: string })?.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Failed to load stats");
     } finally {
-      if (!ctrl.signal.aborted) setLoading(false);
+      setLoading(false);
     }
   }, [auth]);
 
   useEffect(() => {
     if (auth.status === "ready") void load();
-    return () => abortRef.current?.abort();
   }, [auth.status, load]);
 
   // --- Derived ---
