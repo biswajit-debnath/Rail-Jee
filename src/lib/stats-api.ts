@@ -95,7 +95,7 @@ async function apiGet<T>(path: string, creds: AuthCreds): Promise<T> {
   if (!creds?.token) throw new Error("Not signed in");
   if (!creds?.userId) throw new Error("Missing business user id");
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}/business/v1${path}`, {
     headers: {
       accept: "*/*",
       authorization: `Bearer ${creds.token}`,
