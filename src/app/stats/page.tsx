@@ -360,7 +360,8 @@ function InsightCard({
 }: { stats: UserExamStats; history: ExamHistoryRecord[] }) {
   const insights = useMemo(() => {
     const items: { label: string; value: string; tone: "good" | "bad" | "neutral" }[] = [];
-    const ranked = [...(stats.allDepartments ?? stats.departmentExams ?? [])]
+    const allDepts = stats?.allDepartments ?? stats?.departmentExams ?? [];
+    const ranked = [...(Array.isArray(allDepts) ? allDepts : [])]
       .sort((a, b) => num(b.averageAccuracy) - num(a.averageAccuracy));
     if (ranked.length > 0) {
       const best = ranked[0];
@@ -378,7 +379,7 @@ function InsightCard({
         });
       }
     }
-    if (history.length > 0) {
+    if (Array.isArray(history) && history.length > 0) {
       const latest = [...history].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )[0];
@@ -390,7 +391,7 @@ function InsightCard({
         tone: latest.isPassed ? "good" : "neutral",
       });
     }
-    if (history.length >= 2) {
+    if (Array.isArray(history) && history.length >= 2) {
       const sorted = [...history].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
