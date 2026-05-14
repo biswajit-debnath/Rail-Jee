@@ -379,7 +379,7 @@ function InsightCard({
         });
       }
     }
-    if (history.length > 0) {
+    if (Array.isArray(history) && history.length > 0) {
       const latest = [...history].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )[0];
@@ -392,7 +392,7 @@ function InsightCard({
         tone: latest.isPassed ? "good" : "neutral",
       });
     }
-    if (history.length >= 2) {
+    if (Array.isArray(history) && history.length >= 2) {
       const sorted = [...history].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
