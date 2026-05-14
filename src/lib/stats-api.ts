@@ -6,9 +6,7 @@
 // userId on every request. This guarantees we always use a non-expired token
 // and works with the project's existing auth flow.
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://railji-business.onrender.com/business/v1";
+import { API_ENDPOINTS } from "./apiConfig";
 
 // ---------- Types ----------
 export interface PaperCodeStats {
@@ -91,11 +89,11 @@ export interface AuthCreds {
 }
 
 // ---------- HTTP ----------
-async function apiGet<T>(path: string, creds: AuthCreds): Promise<T> {
+async function apiGet<T>(url: string, creds: AuthCreds): Promise<T> {
   if (!creds?.token) throw new Error("Not signed in");
   if (!creds?.userId) throw new Error("Missing business user id");
 
-  const res = await fetch(`${API_BASE}/business/v1${path}`, {
+  const res = await fetch(url, {
     headers: {
       accept: "*/*",
       authorization: `Bearer ${creds.token}`,
@@ -177,7 +175,7 @@ function buildGeneralDepartment(
 // ---------- Public API ----------
 export async function fetchUserStats(creds: AuthCreds): Promise<UserExamStats> {
   const r = await apiGet<ApiEnvelope<Omit<UserExamStats, "allDepartments">>>(
-    `/exams/stats/${creds.userId}`,
+    API_ENDPOINTS.USER_EXAM_STATS(creds.userId),
     creds,
   );
   const data = r.data ?? ({} as UserExamStats);
@@ -203,7 +201,7 @@ export async function fetchUserStats(creds: AuthCreds): Promise<UserExamStats> {
 export async function fetchExamHistory(creds: AuthCreds, limit = 20) {
   const r = await apiGet<
     ApiEnvelope<{ exams: ExamHistoryRecord[]; total: number }>
-  >(`/exams/history/${creds.userId}?limit=${limit}`, creds);
+  >(API_ENDPOINTS.USER_EXAM_HISTORY(creds.userId, `?limit=${limit}`), creds);
   const exams = (r.data?.exams ?? []).map((e) => ({
     ...e,
     departmentId: e.paperType === "general" ? GENERAL_DEPT_ID : e.departmentId,
