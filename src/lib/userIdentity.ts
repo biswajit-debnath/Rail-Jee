@@ -17,10 +17,57 @@
 
 import { API_ENDPOINTS } from './apiConfig';
 import { apiFetch, ApiError } from './apiUtil';
+import { createClient } from './supabase/client';
 
 const STORAGE_KEY = 'railji_business_user_id';
 
-let memoryCache: string | null = null;
+interface CachedIdentity {
+  /** Supabase auth user id (the JWT `sub`). */
+  sub: string;
+  /** Backend business user id (e.g. "user-..."). */
+  userId: string;
+}
+
+let memoryCache: CachedIdentity | null = null;
+
+async function getCurrentSupabaseSub(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredIdentity(): CachedIdentity | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    // Legacy format: bare string (no sub binding). Drop it — we cannot
+    // safely associate it with the current Supabase user.
+    if (!raw.startsWith('{')) {
+      window.sessionStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    const parsed = JSON.parse(raw) as Partial<CachedIdentity>;
+    if (
+      parsed &&
+      typeof parsed.sub === 'string' &&
+      typeof parsed.userId === 'string' &&
+      parsed.sub.length > 0 &&
+      parsed.userId.length > 0
+    ) {
+      return { sub: parsed.sub, userId: parsed.userId };
+    }
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 /**
  * Try to extract a business userId (string starting with "user-") from an
@@ -55,26 +102,34 @@ export class UserIdentityError extends Error {
   }
 }
 
-export function getCachedBusinessUserId(): string | null {
-  if (memoryCache) return memoryCache;
-  if (typeof window === 'undefined') return null;
-  try {
-    const v = window.sessionStorage.getItem(STORAGE_KEY);
-    if (v) {
-      memoryCache = v;
-      return v;
-    }
-  } catch {
-    /* ignore */
+/**
+ * Returns the cached business userId only if its bound Supabase `sub`
+ * matches `expectedSub`. Any mismatch is treated as a miss and the stale
+ * entry is purged so a different signed-in user can never read it.
+ */
+export function getCachedBusinessUserId(expectedSub?: string | null): string | null {
+  const cached = memoryCache ?? readStoredIdentity();
+  if (!cached) return null;
+
+  if (expectedSub && cached.sub !== expectedSub) {
+    clearCachedBusinessUserId();
+    return null;
   }
-  return null;
+
+  memoryCache = cached;
+  return cached.userId;
 }
 
-export function setCachedBusinessUserId(userId: string): void {
-  memoryCache = userId;
+export function setCachedBusinessUserId(userId: string, sub: string): void {
+  if (!sub) {
+    // Without a sub binding we cannot safely cache; refuse silently.
+    return;
+  }
+  const entry: CachedIdentity = { sub, userId };
+  memoryCache = entry;
   if (typeof window !== 'undefined') {
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, userId);
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(entry));
     } catch {
       /* ignore quota errors */
     }
@@ -98,7 +153,9 @@ export function clearCachedBusinessUserId(): void {
  * or `UserIdentityError` if the response shape is unexpected.
  */
 export async function getCurrentBusinessUserId(): Promise<string> {
-  const cached = getCachedBusinessUserId();
+  const sub = await getCurrentSupabaseSub();
+
+  const cached = getCachedBusinessUserId(sub);
   if (cached) return cached;
 
   let payload: any;
@@ -116,6 +173,8 @@ export async function getCurrentBusinessUserId(): Promise<string> {
     );
   }
 
-  setCachedBusinessUserId(userId);
+  if (sub) {
+    setCachedBusinessUserId(userId, sub);
+  }
   return userId;
 }

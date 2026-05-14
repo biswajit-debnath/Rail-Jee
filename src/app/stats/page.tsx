@@ -206,7 +206,7 @@ export default function StatsPage() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        {auth.status === "loading" || (auth.status === "ready" && loading && !stats) ? (
+        {auth.status === "loading" || (auth.status === "ready" && !error && !stats) ? (
           <LoadingSkeleton />
         ) : auth.status === "unauthenticated" ? (
           <SignInPrompt onSignIn={() => router.push("/login")} />

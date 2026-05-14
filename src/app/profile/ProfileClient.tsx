@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { departmentCache } from '@/lib/departmentCache';
 import { getDepartmentIcon } from '@/lib/departmentIcons';
 import { getUserSubscriptions, type Subscription } from '@/lib/api';
+import { clearCachedBusinessUserId } from '@/lib/userIdentity';
 
 interface ProfileClientProps {
   user: {
@@ -70,6 +71,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     setSigningOut(true);
     await supabase.auth.signOut();
     departmentCache.clear();
+    clearCachedBusinessUserId();
     window.location.href = '/';
   }
 
