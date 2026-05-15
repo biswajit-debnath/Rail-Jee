@@ -65,6 +65,29 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
       if (cachedGeneralDeptId) {
         return cachedGeneralDeptId;
       }
+
+      // Cache miss: look up the General department from the API directly so
+      // we don't fall through to searchAllDepartments (which would otherwise
+      // pick the first matching dept alphabetically, e.g. "accounts").
+      try {
+        const data = await apiFetch(API_ENDPOINTS.DEPARTMENTS, { requireAuth: false });
+        const departments = data.data || [];
+        if (departments.length > 0) {
+          departmentCache.set({ departments });
+        }
+        const generalDept = departments.find((d: any) =>
+          d.name?.toLowerCase() === 'general' || d.slug?.toLowerCase() === 'general'
+        );
+        if (generalDept) {
+          const generalId = generalDept.departmentId || generalDept.id;
+          if (generalId) {
+            departmentCache.setGeneralDeptId(generalId);
+            return generalId;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to resolve general department:', err);
+      }
       return null; // Will need to search all departments
     }
 
@@ -220,7 +243,9 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
         }
 
         // Handle general papers
-        const isGeneralPaper = paper.department?.toLowerCase() === 'general';
+        const isGeneralPaper =
+          paper.paperType?.toLowerCase() === 'general' ||
+          paper.department?.toLowerCase() === 'general';
         let finalDepartmentId = departmentId;
 
         if (isGeneralPaper) {
@@ -245,6 +270,7 @@ export function useExamData({ examId, deptSlug }: UseExamDataProps): UseExamData
         const examData: Exam = {
           id: paper.paperId || paper._id,
           departmentId: finalDepartmentId,
+          isGeneral: isGeneralPaper,
           paperId: paper.paperId || paper._id,
           name: paper.name,
           description: paper.description,

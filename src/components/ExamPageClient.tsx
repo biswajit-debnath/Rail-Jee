@@ -213,7 +213,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           examId,
           activeExamId,
           paperId: exam.paperId,
-          departmentId: exam.departmentId,
+          departmentId: exam.isGeneral ? 'general' : exam.departmentId,
           answers: answersRef.current,
           markedForReview: markedForReviewRef.current,
           timeRemaining: timeRemainingRef.current,
@@ -274,7 +274,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
             headers,
             body: JSON.stringify({
               paperId: exam.paperId,
-              departmentId: exam.departmentId,
+              departmentId: exam.isGeneral ? 'general' : exam.departmentId,
               examMode:mode,
             }),
           });
@@ -349,7 +349,7 @@ export default function ExamPageClient({ examId }: ExamPageClientProps) {
           body: JSON.stringify({
             examId: activeExamId,
             paperId: exam.paperId,
-            departmentId: exam.departmentId,
+            departmentId: exam.isGeneral ? 'general' : exam.departmentId,
             attemptedQuestions: result.totalQuestions - result.skippedQuestions,
             unattemptedQuestions: result.skippedQuestions,
             responses

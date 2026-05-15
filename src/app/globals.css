@@ -263,6 +263,18 @@ html { scroll-behavior: smooth; }
 
   /* Scope warm border + bg helpers to /stats only — no impact elsewhere */
   [data-stats-root] * { border-color: var(--border); }
+
+  /* Stats page: re-tone primary to brand orange.
+     Scoped so no other page is affected. */
+  [data-stats-root] {
+    --primary:            oklch(0.70 0.18 50);   /* warm brand orange */
+    --primary-foreground: oklch(0.99 0 0);
+    --primary-glow:       oklch(0.78 0.16 65);   /* amber highlight */
+    --ring:               oklch(0.70 0.18 50);
+    --accent:             oklch(0.96 0.02 60);   /* warm-tinted hover bg */
+    --accent-foreground:  oklch(0.20 0.02 60);
+    --gradient-primary:   linear-gradient(135deg, var(--primary), var(--primary-glow));
+  }
 }
 
 /* Tiny helpers used by stats components.

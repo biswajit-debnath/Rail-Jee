@@ -49,6 +49,7 @@ export interface ExamPaper {
 export interface Exam {
   id: string;
   departmentId?: string;
+  isGeneral?: boolean;
   paperId?: string;
   name: string;
   description: string;
